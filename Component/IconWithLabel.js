@@ -20,10 +20,16 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     padding: 10,
     elevation: 5,
+    shadowColor: '#000', // iOS shadow
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
   },
   iconLabel: {
     marginTop: 5,
-    color: '#FFF',
+    color: '#FF8DA1', // Updated to match the icon color
+    fontSize: 12,
+    fontWeight: 'bold',
   },
 });
 

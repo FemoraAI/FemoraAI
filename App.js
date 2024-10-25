@@ -36,7 +36,7 @@ const App = () => {
           component={DoctorsScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="md-medkit-outline" size={size} color={color} />
+              <Icon name="medkit-outline" size={size} color={color} /> // Updated icon name
             ),
           }}
         />

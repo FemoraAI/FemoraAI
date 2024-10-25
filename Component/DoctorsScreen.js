@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import AppLoading from 'expo-app-loading';
 
-const HeaderScreen = () => {
+const DoctorScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   // Load Inter fonts
@@ -20,24 +20,7 @@ const HeaderScreen = () => {
 
   const doctors = [
     { id: 1, name: 'Dr. Jane Doe', specialization: 'Cardiologist', image: require('../assets/15.png'), rating: 4.5 },
-    { id: 2, name: 'Dr. John Smith', specialization: 'Dermatologist', image: require('../assets/15.png'), rating: 4.0 },
-    { id: 3, name: 'Dr. Emma Brown', specialization: 'Pediatrician', image: require('../assets/15.png'), rating: 4.7 },
-    { id: 4, name: 'Dr. Emily White', specialization: 'Gynecologist', image: require('../assets/15.png'), rating: 5.0 },
-    { id: 5, name: 'Dr. James Green', specialization: 'Orthopedic', image: require('../assets/15.png'), rating: 4.2 },
-    { id: 6, name: 'Dr. Sarah Black', specialization: 'Neurologist', image: require('../assets/15.png'), rating: 4.8 },
-  ];
-
-  const appointmentDoctors = [
-    { id: 1, name: 'Dr. Jane Doe', specialization: 'Cardiologist', image: require('../assets/15.png'), rating: 4.5 },
-    { id: 2, name: 'Dr. John Smith', specialization: 'Dermatologist', image: require('../assets/15.png'), rating: 4.0 },
-    { id: 3, name: 'Dr. Emma Brown', specialization: 'Pediatrician', image: require('../assets/15.png'), rating: 4.7 },
-    { id: 4, name: 'Dr. Emily White', specialization: 'Gynecologist', image: require('../assets/15.png'), rating: 5.0 },
-    { id: 5, name: 'Dr. James Green', specialization: 'Orthopedic', image: require('../assets/15.png'), rating: 4.2 },
-    { id: 6, name: 'Dr. Sarah Black', specialization: 'Neurologist', image: require('../assets/15.png'), rating: 4.8 },
-    { id: 7, name: 'Dr. Chris Blue', specialization: 'Psychiatrist', image: require('../assets/15.png'), rating: 4.1 },
-    { id: 8, name: 'Dr. Linda Red', specialization: 'Surgeon', image: require('../assets/15.png'), rating: 4.3 },
-    { id: 9, name: 'Dr. Michael Yellow', specialization: 'Dentist', image: require('../assets/15.png'), rating: 4.6 },
-    { id: 10, name: 'Dr. Sophia Grey', specialization: 'Endocrinologist', image: require('../assets/15.png'), rating: 4.9 },
+    // Additional doctor data here...
   ];
 
   const renderDoctorCard = ({ item }) => (
@@ -47,12 +30,7 @@ const HeaderScreen = () => {
       <Text style={styles.doctorSpecialization}>{item.specialization}</Text>
       <View style={styles.ratingContainer}>
         {Array.from({ length: 5 }, (_, index) => (
-          <Ionicons
-            key={index}
-            name={index < Math.floor(item.rating) ? 'star' : 'star-outline'}
-            size={16}
-            color="#FFD700"
-          />
+          <Ionicons key={index} name={index < Math.floor(item.rating) ? 'star' : 'star-outline'} size={16} color="#FFD700" />
         ))}
         <Text style={styles.ratingText}>({item.rating})</Text>
       </View>
@@ -67,73 +45,44 @@ const HeaderScreen = () => {
     </View>
   );
 
-  const renderDoctorModalCard = ({ item }) => (
-    <View style={styles.modalDoctorCard}>
-      <Image source={item.image} style={styles.modalDoctorImage} />
-      <View style={styles.modalDoctorInfoContainer}>
-        <Text style={styles.modalDoctorName}>{item.name}</Text>
-        <Text style={styles.modalSpecialization}>{item.specialization}</Text>
-        <View style={styles.ratingContainer}>
-          {Array.from({ length: 5 }, (_, index) => (
-            <Ionicons
-              key={index}
-              name={index < Math.floor(item.rating) ? 'star' : 'star-outline'}
-              size={16}
-              color="#FFD700"
-            />
-          ))}
-          <Text style={styles.ratingText}>({item.rating})</Text>
-        </View>
-        <Text style={styles.dateTime}>Date: 2024-10-25</Text>
-        <Text style={styles.dateTime}>Time: 10:00 AM</Text>
-      </View>
-      <TouchableOpacity style={styles.modalBookButton}>
-        <Text style={styles.buttonText}>Book</Text>
+  const renderHeader = () => (
+    <LinearGradient colors={['#FFCCCB', '#FFB6C1']} style={styles.container}>
+      <TouchableOpacity style={styles.notificationIcon}>
+        <Ionicons name="notifications-outline" size={30} color="#FFF" />
       </TouchableOpacity>
-    </View>
+      <View style={styles.greetingSection}>
+        <Text style={styles.greetingText}>Hi LADY!</Text>
+        <Text style={styles.questionText}>How do you feel today?</Text>
+      </View>
+      <View style={styles.iconSection}>
+        <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
+        <IconWithLabel icon="videocam-outline" label="Video Chat" />
+        <IconWithLabel icon="alert-circle-outline" label="Emergency" />
+      </View>
+    </LinearGradient>
   );
 
   return (
     <SafeAreaView style={styles.headerContainer}>
-      <LinearGradient colors={['#FFCCCB', '#FFB6C1']} style={styles.container}>
-        <TouchableOpacity style={styles.notificationIcon}>
-          <Ionicons name="notifications-outline" size={30} color="#FFF" />
-        </TouchableOpacity>
-
-        <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>Hi LADY!</Text>
-          <Text style={styles.questionText}>How do you feel today?</Text>
-        </View>
-
-        <View style={styles.iconSection}>
-          <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
-          <IconWithLabel icon="videocam-outline" label="Video Chat" />
-          <IconWithLabel icon="alert-circle-outline" label="Emergency" />
-        </View>
-      </LinearGradient>
-
-      {/* Doctor of the Week Section */}
-      <View style={styles.doctorSection}>
-        <Text style={styles.doctorOfTheWeek}>Doctor of the Week</Text>
-        <FlatList
-          data={doctors}
-          renderItem={renderDoctorCard}
-          keyExtractor={item => item.id.toString()}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.doctorListContainer}
-        />
-      </View>
+      <FlatList
+        data={doctors}
+        renderItem={renderDoctorCard}
+        keyExtractor={(item) => item.id.toString()}
+        horizontal={false}
+        ListHeaderComponent={renderHeader}
+        contentContainerStyle={styles.doctorListContainer}
+      />
 
       <Modal animationType="slide" transparent={false} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
         <View style={styles.modalView}>
           <Text style={styles.modalText}>Appointment Details</Text>
           <FlatList
-            data={appointmentDoctors}
-            renderItem={renderDoctorModalCard}
-            keyExtractor={item => item.id.toString()}
+            data={doctors}
+            renderItem={renderDoctorCard}
+            keyExtractor={(item) => item.id.toString()}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.modalDoctorCardsContainer}
+            nestedScrollEnabled // Allows the nested FlatList to scroll independently in the modal
           />
           <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
             <Text style={styles.buttonText}>Close</Text>
@@ -143,16 +92,6 @@ const HeaderScreen = () => {
     </SafeAreaView>
   );
 };
-
-const IconWithLabel = ({ icon, label, onPress }) => (
-  <View style={styles.iconWrapper}>
-    <TouchableOpacity style={styles.iconContainer} onPress={onPress}>
-      <Ionicons name={icon} size={30} color="#FF8DA1" />
-    </TouchableOpacity>
-    <Text style={styles.iconLabel}>{label}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
   headerContainer: {
     flex: 1,
@@ -377,5 +316,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
 });
-
-export default HeaderScreen;
+export default DoctorScreen;

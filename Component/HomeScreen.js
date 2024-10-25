@@ -32,7 +32,7 @@ const categories = [
  
 ];
 
-const HeaderScreen = () => {
+const HomeScreen = () => {
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
   const [cartItems, setCartItems] = useState({});
   const [isFocused, setIsFocused] = useState(false);
@@ -366,4 +366,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HeaderScreen;
+export default HomeScreen;
