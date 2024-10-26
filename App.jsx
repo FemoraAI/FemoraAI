@@ -7,6 +7,11 @@ import CartScreen from './Component/CartScreen';
 import Icon from 'react-native-vector-icons/Ionicons'; // Import Ionicons for icons
 import { StyleSheet } from 'react-native';
 
+// Debugging checks to confirm component imports
+console.log('HeaderScreen:', HeaderScreen);
+console.log('DoctorsScreen:', DoctorsScreen);
+console.log('CartScreen:', CartScreen);
+
 const Tab = createBottomTabNavigator();
 
 const App = () => {
@@ -15,11 +20,11 @@ const App = () => {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarStyle: styles.tabBar, // Fixed tabBar, always visible
+          tabBarStyle: styles.tabBar, // Custom style for tab bar
           tabBarActiveTintColor: '#FF3366', // Active icon color
           tabBarInactiveTintColor: '#B0B0B0', // Inactive icon color
           tabBarLabelStyle: { display: 'none' }, // Hide label text
-          tabBarIconStyle: { marginBottom: -5 }, // Slight margin for icons
+          tabBarIconStyle: { marginBottom: -5 }, // Adjust margin for icons
         }}
       >
         <Tab.Screen
@@ -36,7 +41,7 @@ const App = () => {
           component={DoctorsScreen}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="medkit-outline" size={size} color={color} /> // Updated icon name
+              <Icon name="medkit-outline" size={size} color={color} />
             ),
           }}
         />
@@ -58,15 +63,15 @@ const App = () => {
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',
-    bottom: 20, // Position above the bottom of the screen
+    bottom: 20,
     left: 20,
     right: 20,
-    height: 60, // Standard height for a sleek look
-    backgroundColor: '#FFFFFF', // Clean white background
-    borderTopWidth: 0, // No border on top
-    elevation: 5, // Subtle elevation for depth
-    borderRadius: 20, // Rounded corners for aesthetics
-    paddingBottom: 5, // Padding for better touch feedback
+    height: 60,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 0,
+    elevation: 5,
+    borderRadius: 20,
+    paddingBottom: 5,
   },
 });
 

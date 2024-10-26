@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, FlatList, Modal, SafeAreaView } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
-import AppLoading from 'expo-app-loading';
+import * as SplashScreen from 'expo-splash-screen';
 
 const DoctorScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -14,13 +14,38 @@ const DoctorScreen = () => {
     Inter_700Bold,
   });
 
+  // Ensure SplashScreen.preventAutoHideAsync only runs once on mount
+  useEffect(() => {
+    const prepareSplashScreen = async () => {
+      try {
+        await SplashScreen.preventAutoHideAsync();
+      } catch (e) {
+        console.warn("SplashScreen.preventAutoHideAsync() failed", e);
+      }
+    };
+    prepareSplashScreen();
+  }, []);
+
+  // Hide the splash screen once fonts are loaded
+  const onLayoutRootView = useCallback(async () => {
+    if (fontsLoaded) {
+      try {
+        await SplashScreen.hideAsync();
+      } catch (e) {
+        console.warn("SplashScreen.hideAsync() failed", e);
+      }
+    }
+  }, [fontsLoaded]);
+
   if (!fontsLoaded) {
-    return <AppLoading />;
+    return null; // Render nothing while fonts are loading
   }
 
   const doctors = [
     { id: 1, name: 'Dr. Jane Doe', specialization: 'Cardiologist', image: require('../assets/15.png'), rating: 4.5 },
-    // Additional doctor data here...
+    { id: 2, name: 'Dr. John Smith', specialization: 'Dermatologist', image: require('../assets/15.png'), rating: 4.0 },
+    { id: 3, name: 'Dr. Emma Brown', specialization: 'Pediatrician', image: require('../assets/15.png'), rating: 4.7 },
+    { id: 4, name: 'Dr. Emily White', specialization: 'Gynecologist', image: require('../assets/15.png'), rating: 5.0 },
   ];
 
   const renderDoctorCard = ({ item }) => (
@@ -30,7 +55,12 @@ const DoctorScreen = () => {
       <Text style={styles.doctorSpecialization}>{item.specialization}</Text>
       <View style={styles.ratingContainer}>
         {Array.from({ length: 5 }, (_, index) => (
-          <Ionicons key={index} name={index < Math.floor(item.rating) ? 'star' : 'star-outline'} size={16} color="#FFD700" />
+          <Ionicons
+            key={index}
+            name={index < Math.floor(item.rating) ? 'star' : 'star-outline'}
+            size={16}
+            color="#FFD700"
+          />
         ))}
         <Text style={styles.ratingText}>({item.rating})</Text>
       </View>
@@ -45,45 +75,45 @@ const DoctorScreen = () => {
     </View>
   );
 
-  const renderHeader = () => (
-    <LinearGradient colors={['#FFCCCB', '#FFB6C1']} style={styles.container}>
-      <TouchableOpacity style={styles.notificationIcon}>
-        <Ionicons name="notifications-outline" size={30} color="#FFF" />
-      </TouchableOpacity>
-      <View style={styles.greetingSection}>
-        <Text style={styles.greetingText}>Hi LADY!</Text>
-        <Text style={styles.questionText}>How do you feel today?</Text>
-      </View>
-      <View style={styles.iconSection}>
-        <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
-        <IconWithLabel icon="videocam-outline" label="Video Chat" />
-        <IconWithLabel icon="alert-circle-outline" label="Emergency" />
-      </View>
-    </LinearGradient>
-  );
-
   return (
-    <SafeAreaView style={styles.headerContainer}>
-      <FlatList
-        data={doctors}
-        renderItem={renderDoctorCard}
-        keyExtractor={(item) => item.id.toString()}
-        horizontal={false}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.doctorListContainer}
-      />
+    <SafeAreaView style={styles.headerContainer} onLayout={onLayoutRootView}>
+      <LinearGradient colors={['#FFCCCB', '#FFB6C1']} style={styles.container}>
+        <TouchableOpacity style={styles.notificationIcon}>
+          <Ionicons name="notifications-outline" size={30} color="#FFF" />
+        </TouchableOpacity>
 
-      <Modal animationType="slide" transparent={false} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
+        <View style={styles.greetingSection}>
+          <Text style={styles.greetingText}>Hi LADY!</Text>
+          <Text style={styles.questionText}>How do you feel today?</Text>
+        </View>
+
+        <View style={styles.iconSection}>
+          <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
+          <IconWithLabel icon="videocam-outline" label="Video Chat" />
+          <IconWithLabel icon="alert-circle-outline" label="Emergency" />
+        </View>
+      </LinearGradient>
+
+      <View style={styles.doctorSection}>
+        <Text style={styles.doctorOfTheWeek}>Doctor of the Week</Text>
+        <FlatList
+          data={doctors}
+          renderItem={renderDoctorCard}
+          keyExtractor={item => item.id.toString()}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.doctorListContainer}
+        />
+      </View>
+
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
         <View style={styles.modalView}>
           <Text style={styles.modalText}>Appointment Details</Text>
-          <FlatList
-            data={doctors}
-            renderItem={renderDoctorCard}
-            keyExtractor={(item) => item.id.toString()}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={styles.modalDoctorCardsContainer}
-            nestedScrollEnabled // Allows the nested FlatList to scroll independently in the modal
-          />
           <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
@@ -92,6 +122,17 @@ const DoctorScreen = () => {
     </SafeAreaView>
   );
 };
+
+// Define IconWithLabel component here
+const IconWithLabel = ({ icon, label, onPress }) => (
+  <View style={styles.iconWrapper}>
+    <TouchableOpacity style={styles.iconContainer} onPress={onPress}>
+      <Ionicons name={icon} size={30} color="#FF8DA1" />
+    </TouchableOpacity>
+    <Text style={styles.iconLabel}>{label}</Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   headerContainer: {
     flex: 1,
@@ -167,9 +208,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_700Bold',
     marginVertical: 10,
     color: '#FF8DA1',
-  },
-  doctorListContainer: {
-    paddingVertical: 10,
   },
   doctorCard: {
     backgroundColor: '#FFF',
@@ -254,56 +292,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#FF8DA1',
   },
-  modalDoctorCardsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-  },
-  modalDoctorCard: {
-    backgroundColor: '#FFF',
-    borderRadius: 15,
-    padding: 15,
-    alignItems: 'center',
-    marginVertical: 10,
-    marginHorizontal: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 5,
-    elevation: 3,
-    width: 150,
-  },
-  modalDoctorImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 10,
-  },
-  modalDoctorInfoContainer: {
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  modalDoctorName: {
-    fontWeight: 'bold',
-    fontFamily: 'Inter_700Bold',
-  },
-  modalSpecialization: {
-    fontSize: 12,
-    color: '#666',
-    fontFamily: 'Inter_400Regular',
-  },
-  dateTime: {
-    fontSize: 12,
-    color: '#999',
-    fontFamily: 'Inter_400Regular',
-  },
-  modalBookButton: {
-    backgroundColor: '#FF8DA1',
-    borderRadius: 10,
-    padding: 10,
-    width: '100%',
-    alignSelf: 'center',
-    marginTop: 10,
-  },
   closeButton: {
     backgroundColor: '#FFB6C1',
     borderRadius: 10,
@@ -316,4 +304,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular',
   },
 });
+
 export default DoctorScreen;
