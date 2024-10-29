@@ -1,0 +1,70 @@
+.listContainer {
+    padding: 0 10px;
+}
+.card {
+    background-color: #F0F4F8;
+    border-radius: 12px;
+    padding: 12px;
+    margin-right: 12px;
+    width: 160px;
+    align-items: center;
+}
+.image {
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+.name {
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'Montserrat Regular';
+    color: #2C3E50;
+}
+.localName {
+    font-size: 14px;
+    color: #7F8C8D;
+    margin-bottom: 4px;
+}
+.weight {
+    font-size: 14px;
+    color: #7F8C8D;
+    margin-bottom: 4px;
+}
+.priceContainer {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.price {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2C3E50;
+    margin-right: 4px;
+}
+.originalPrice {
+    font-size: 14px;
+    color: #7F8C8D;
+    text-decoration: line-through;
+}
+.addButton {
+    background-color: #2ECC71;
+    padding: 6px 12px;
+    border-radius: 4px;
+}
+.addButtonText {
+    color: #FFFFFF;
+    font-weight: bold;
+}
+.quantitySelector {
+    display: flex;
+    align-items: center;
+    background-color: #2ECC71;
+    border-radius: 4px;
+    padding: 4px 8px;
+}
+.quantityText {
+    color: #FFFFFF;
+    font-weight: bold;
+    margin: 0 8px;
+}

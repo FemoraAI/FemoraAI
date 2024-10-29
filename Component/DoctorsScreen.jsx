@@ -4,6 +4,8 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
+import DoctorSpecialtiesList from './DoctorSpecialtiesList';
+import UpdatedTopDoctorsList from './TopDoctersList';
 
 const DoctorScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
@@ -48,6 +50,7 @@ const DoctorScreen = () => {
     { id: 4, name: 'Dr. Emily White', specialization: 'Gynecologist', image: require('../assets/15.png'), rating: 5.0 },
   ];
 
+ 
   const renderDoctorCard = ({ item }) => (
     <View style={styles.doctorCard}>
       <Image source={item.image} style={styles.doctorImage} />
@@ -89,12 +92,14 @@ const DoctorScreen = () => {
 
         <View style={styles.iconSection}>
           <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
-          <IconWithLabel icon="videocam-outline" label="Video Chat" />
-          <IconWithLabel icon="alert-circle-outline" label="Emergency" />
+          <IconWithLabel icon="medical-outline" label="Prescription" />
+          {/* <IconWithLabel icon="alert-circle-outline" label="Emergency" /> */}
         </View>
       </LinearGradient>
-
-      <View style={styles.doctorSection}>
+      <View>
+        <DoctorSpecialtiesList />
+      </View> 
+      {/* <View style={styles.doctorSection}>
         <Text style={styles.doctorOfTheWeek}>Doctor of the Week</Text>
         <FlatList
           data={doctors}
@@ -104,9 +109,13 @@ const DoctorScreen = () => {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.doctorListContainer}
         />
-      </View>
+      </View> */}
+      <View style={styles.topDoctorsContainer}>
+  <UpdatedTopDoctorsList />
+</View>
+      
 
-      <Modal
+      {/* <Modal
         animationType="slide"
         transparent={false}
         visible={modalVisible}
@@ -118,7 +127,7 @@ const DoctorScreen = () => {
             <Text style={styles.buttonText}>Close</Text>
           </TouchableOpacity>
         </View>
-      </Modal>
+      </Modal> */}
     </SafeAreaView>
   );
 };
@@ -134,22 +143,29 @@ const IconWithLabel = ({ icon, label, onPress }) => (
 );
 
 const styles = StyleSheet.create({
+  topDoctorsContainer: {
+    flex :1,
+    marginTop: 20,
+  },
   headerContainer: {
     flex: 1,
     marginBottom: 20,
+    backgroundColor: '#f1efe6',
   },
   container: {
+    marginTop : 20,
     borderRadius: 15,
     paddingVertical: 20,
     paddingHorizontal: 15,
     marginTop: 10,
-    shadowColor: 'rgba(255, 105, 180, 0.5)',
+    shadowColor: 'rgba(255, 182, 193, 0.5)',
     shadowOpacity: 0.5,
     shadowOffset: { width: 0, height: 13 },
     shadowRadius: 10,
     elevation: 15,
     position: 'relative',
     marginHorizontal: 10,
+    backgroundColor: '#f1efe6',
   },
   notificationIcon: {
     position: 'absolute',
@@ -164,13 +180,13 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: 'bold',
     fontFamily: 'Inter_700Bold',
-    color: '#FFF',
+    color: 'white',
   },
   questionText: {
     fontSize: 16,
     fontWeight: '300',
     fontFamily: 'Inter_400Regular',
-    color: '#FFF',
+    color: 'grey',
   },
   iconSection: {
     flexDirection: 'row',
@@ -194,8 +210,8 @@ const styles = StyleSheet.create({
     marginTop: 3,
     fontSize: 12,
     fontWeight: 'bold',
-    fontFamily: 'Inter_400Regular',
-    color: '#FFF',
+    fontFamily: 'Inter_400Bold',
+    color: 'white',
     textAlign: 'center',
   },
   doctorSection: {

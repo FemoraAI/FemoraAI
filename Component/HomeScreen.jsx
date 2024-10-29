@@ -12,7 +12,15 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
-
+import ShopHeading from './ShopHeading';
+import PeriodTracker from './periodtracker';
+import HorizontalProductList from './HorizontalProductList';
+const banners = [
+  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+1' },
+  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+2' },
+  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+3' },
+  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+4' },
+];
 const promotionalMessages = [
   {
     title: 'TRACK YOUR CYCLE!',
@@ -127,23 +135,39 @@ const HomeScreen = () => {
         </Modal>
 
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={20} color="#FF3366" style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, isFocused && styles.searchInputFocused]}
-            placeholder="Search for products or services"
-            placeholderTextColor="#FF3366"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-          />
-        </View>
-      </View>
-      
-      {/* Promotional Message Section */}
-      <View style={styles.promoContainer}>
-        <Text style={styles.promoTitle}>{promotionalMessages[currentPromoIndex].title}</Text>
-        <Text style={styles.promoText}>{promotionalMessages[currentPromoIndex].description}</Text>
-      </View>
+          <View style={styles.searchContainer}>
+            <Icon name="search-outline" size={20} color="#8E8D8A" style={styles.searchIcon} />
+            <TextInput
+              style={[styles.searchInput, isFocused && styles.searchInputFocused]}
+              placeholder="Search for products or services"
+              placeholderTextColor="#8E8D8A"
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+            />
+          </View>
+              </View>
+              
+              {/* Promotional Message Section */}
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+  <PeriodTracker />
+</View>
+
+
+{/* Product section starts here */}
+<View>
+<ShopHeading title="FOR YOU" />
+</View>
+
+<Text style = {styles.header}>Period Pals</Text>
+<View>
+  <HorizontalProductList/>
+</View>
+<Text style = {styles.header}>Try Something New</Text>
+<HorizontalProductList/>
+<Text style = {styles.header}>Self Care</Text>
+<HorizontalProductList/>
+<Text style = {styles.header}>Snacks</Text>
+<HorizontalProductList/>
     </>
   );
 
@@ -165,7 +189,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: '#f1efe6', // Soft pastel background
   },
   container: {
     paddingHorizontal: 16,
@@ -174,17 +198,21 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'column',
     alignItems: 'flex-start',
-    marginTop: 20,
+    marginTop: 25,
+    fontWeight : 'bold',
+    fontSize : '18',
     marginBottom: 10,
+    
   },
   welcomeText: {
     fontSize: 16,
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF3366',
+    fontWeight: 'regular',
+    color: '#8E8D8A',
+    fontFamily : 'Montserrat Alternates Regular', // Soft pastel text color
   },
   profileIcon: {
     padding: 10,
@@ -196,7 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 25,
-    borderColor: '#FF3366',
+    borderColor: '#8E8D8A', // Soft pastel border color
     borderWidth: 1,
     paddingHorizontal: 15,
     marginTop: 10,
@@ -206,7 +234,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
     marginLeft: 10,
     borderWidth: 0,
   },
@@ -216,14 +244,14 @@ const styles = StyleSheet.create({
   promoContainer: {
     marginTop: 10,
     paddingVertical: 10,
-    backgroundColor: '#FFB6C1',
+    backgroundColor: '#FAD4D8', // Soft pastel background
     borderRadius: 10,
     alignItems: 'center',
   },
   promoTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
   },
   promoText: {
     fontSize: 16,
@@ -246,8 +274,9 @@ const styles = StyleSheet.create({
   },
   productName: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#FF3366',
+    fontWeight: 'regular',
+    color: '#8E8D8A',
+  fontFamily: 'Montserrat Alternates Regular', // Soft pastel text color
     marginTop: 5,
   },
   productDescription: {
@@ -259,7 +288,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
     marginVertical: 4,
   },
   quantityContainer: {
@@ -269,7 +298,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   quantityButton: {
-    backgroundColor: '#FFCCCB',
+    backgroundColor: '#FAD4D8', // Soft pastel background
     borderRadius: 5,
     padding: 5,
     width: 30,
@@ -281,7 +310,7 @@ const styles = StyleSheet.create({
   },
   quantityCount: {
     fontSize: 16,
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
     marginHorizontal: 5,
   },
   modalBackground: {
@@ -300,11 +329,11 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
     marginBottom: 10,
   },
   closeButton: {
-    backgroundColor: '#FF3366',
+    backgroundColor: '#8E8D8A', // Soft pastel background
     padding: 10,
     borderRadius: 5,
     alignItems: 'center',
@@ -324,12 +353,12 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     marginBottom: 10,
     borderWidth: 2,
-    borderColor: '#FF3366',
+    borderColor: '#8E8D8A', // Soft pastel border color
   },
   profileName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FF3366',
+    color: '#8E8D8A', // Soft pastel text color
   },
   profileEmail: {
     fontSize: 16,
@@ -337,5 +366,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 });
+
 
 export default HomeScreen;
