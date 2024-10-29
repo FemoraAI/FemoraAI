@@ -1,65 +1,90 @@
+import './gesture-handler';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HeaderScreen from './Component/HomeScreen';
+import { UserProvider } from './Component/context/UserContext';
+
 import DoctorsScreen from './Component/DoctorsScreen';
 import CartScreen from './Component/CartScreen';
-import Icon from 'react-native-vector-icons/Ionicons'; // Import Ionicons for icons
+import { CartProvider } from './Component/context/CartContext';
+import ProfileManagementScreen from './Component/ProfileManagementScreen';
+import Icon from 'react-native-vector-icons/Ionicons';
 import { StyleSheet } from 'react-native';
 
-// Debugging checks to confirm component imports
-console.log('HeaderScreen:', HeaderScreen);
-console.log('DoctorsScreen:', DoctorsScreen);
-console.log('CartScreen:', CartScreen);
-
+const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
-const App = () => {
+// Separate stack navigator for Home tab
+const HomeStack = () => {
   return (
-    <NavigationContainer>
-      <Tab.Navigator
-        screenOptions={{
-          headerShown: false,
-          tabBarStyle: styles.tabBar, // Custom style for tab bar
-          tabBarActiveTintColor: '#FF3366', // Active icon color
-          tabBarInactiveTintColor: '#B0B0B0', // Inactive icon color
-          tabBarLabelStyle: { display: 'none' }, // Hide label text
-          tabBarIconStyle: { marginBottom: -5 }, // Adjust margin for icons
-        }}
-      >
-        <Tab.Screen
-          name="Home"
-          component={HeaderScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="home-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Doctors"
-          component={DoctorsScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="medkit-outline" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tab.Screen
-          name="Cart"
-          component={CartScreen}
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Icon name="cart-outline" size={size} color={color} />
-            ),
-          }}
-        />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <Stack.Navigator initialRouteName="HomeScreen">
+      <Stack.Screen 
+        name="HomeScreen" 
+        component={HeaderScreen}
+        options={{ headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="ProfileManagement" 
+        component={ProfileManagementScreen}
+        options={{ headerShown: false }} 
+      />
+    </Stack.Navigator>
   );
 };
 
-// Styles for the tab bar
+const App = () => {
+  return (
+    <UserProvider>
+
+    <CartProvider>
+      <NavigationContainer>
+        <Tab.Navigator
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: styles.tabBar,
+            tabBarActiveTintColor: '#FF3366',
+            tabBarInactiveTintColor: '#B0B0B0',
+            tabBarLabelStyle: { display: 'none' },
+            tabBarIconStyle: { marginBottom: -5 },
+          }}
+        >
+          <Tab.Screen
+            name="Home"
+            component={HomeStack}
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="home-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Doctors"
+            component={DoctorsScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="medkit-outline" size={size} color={color} />
+              ),
+            }}
+          />
+          <Tab.Screen
+            name="Cart"
+            component={CartScreen}
+            options={{
+              tabBarIcon: ({ color, size }) => (
+                <Icon name="cart-outline" size={size} color={color} />
+              ),
+            }}
+          />
+        </Tab.Navigator>
+      </NavigationContainer>
+    </CartProvider>
+    </UserProvider>
+
+  );
+};
+
 const styles = StyleSheet.create({
   tabBar: {
     position: 'absolute',

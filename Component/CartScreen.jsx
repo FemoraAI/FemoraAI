@@ -1,80 +1,149 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, SafeAreaView } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  FlatList, 
+  TouchableOpacity, 
+  Image, 
+  SafeAreaView, 
+  Animated 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useCart } from './context/CartContext';
+
+const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
+  const translateY = React.useRef(new Animated.Value(50)).current;
+  const opacity = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 300,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index]);
+
+  return (
+    <SafeAreaView>
+    <Animated.View style={[{ transform: [{ translateY }], opacity }]}>
+      <LinearGradient
+        colors={['white', 'white']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cartItem}
+      >
+        <Image 
+          source={item.image} 
+          style={styles.itemImage} 
+          resizeMode="contain"
+        />
+        <View style={styles.itemDetails}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <TouchableOpacity 
+              onPress={() => onRemove(item.id)}
+              style={styles.deleteButton}
+            >
+              <MaterialCommunityIcons 
+                name="trash-can-outline" 
+                size={24} 
+                color="#FF6B6B" 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.itemPrice}>₹{item.price.toFixed(2)} each</Text>
+          
+          <View style={styles.quantityControl}>
+            <TouchableOpacity 
+              onPress={() => onQuantityChange(item.id, 'decrease')} 
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="minus" size={18} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <TouchableOpacity 
+              onPress={() => onQuantityChange(item.id, 'increase')} 
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.itemTotalPrice}>
+            Total: ₹{(item.price * item.quantity).toFixed(2)}
+          </Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+    </SafeAreaView>
+  );
+});
 
 const CartScreen = () => {
-  const [cartItems, setCartItems] = useState([
-    { id: 1, name: 'Menstrual Cup', price: 10.99, image: require('../assets/15.png'), quantity: 1 },
-    { id: 2, name: 'Pain Relief Medicine', price: 5.99, image: require('../assets/15.png'), quantity: 1 },
-    { id: 3, name: 'Vitamin Supplements', price: 15.99, image: require('../assets/15.png'), quantity: 1 },
-    // Add more items as needed
-  ]);
+  const { cartItems, updateQuantity, removeFromCart } = useCart();
 
-  const handleQuantityChange = (id, type) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id
-          ? { ...item, quantity: type === 'increase' ? item.quantity + 1 : Math.max(1, item.quantity - 1) }
-          : item
-      )
-    );
-  };
+  const handleQuantityChange = useCallback((id, type) => {
+    updateQuantity(id, type);
+  }, [updateQuantity]);
 
-  const handleRemoveItem = (id) => {
-    setCartItems(cartItems.filter(item => item.id !== id));
-  };
+  const handleRemoveItem = useCallback((id) => {
+    removeFromCart(id);
+  }, [removeFromCart]);
 
-  const renderCartItem = ({ item }) => (
-    <View style={styles.cartItem}>
-      <Image source={item.image} style={styles.itemImage} />
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.itemPrice}>${item.price.toFixed(2)} each</Text>
-        
-        {/* Quantity Control */}
-        <View style={styles.quantityControl}>
-          <TouchableOpacity onPress={() => handleQuantityChange(item.id, 'decrease')} style={styles.quantityButton}>
-            <Text style={styles.quantityButtonText}>-</Text>
-          </TouchableOpacity>
-          <Text style={styles.quantityText}>{item.quantity}</Text>
-          <TouchableOpacity onPress={() => handleQuantityChange(item.id, 'increase')} style={styles.quantityButton}>
-            <Text style={styles.quantityButtonText}>+</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Total Price for Quantity */}
-        <Text style={styles.itemTotalPrice}>Total: ${(item.price * item.quantity).toFixed(2)}</Text>
-      </View>
-
-      {/* Remove Button */}
-      <TouchableOpacity style={styles.removeButton} onPress={() => handleRemoveItem(item.id)}>
-        <Text style={styles.removeButtonText}>Remove</Text>
-      </TouchableOpacity>
-    </View>
+  const totalAmount = useMemo(() => 
+    cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
+    [cartItems]
   );
 
-  const totalAmount = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2);
+  const renderItem = useCallback(({ item, index }) => (
+    <CartItem
+      item={item}
+      index={index}
+      onQuantityChange={handleQuantityChange}
+      onRemove={handleRemoveItem}
+    />
+  ), [handleQuantityChange, handleRemoveItem]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Shopping Cart</Text>
+      <LinearGradient
+        colors={['#FFE5E5', '#FFF0F5', '#F0F8FF']}
+        style={styles.container}
+      >
+        <Text style={styles.title}>Your Cart</Text>
         
         <FlatList
           data={cartItems}
-          renderItem={renderCartItem}
-          keyExtractor={item => item.id.toString()}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.cartListContainer}
         />
 
-        {/* Total and Checkout Button */}
         <View style={styles.totalContainer}>
-          <Text style={styles.totalText}>Total: ${totalAmount}</Text>
-          <TouchableOpacity style={styles.checkoutButton}>
+          <Text style={styles.totalText}>Total: ₹{totalAmount}</Text>
+          <TouchableOpacity 
+            style={styles.checkoutButton}
+            onPress={() => {
+              console.log('Proceeding to checkout with total:', totalAmount);
+            }}
+          >
             <Text style={styles.buttonText}>Proceed to Checkout</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </LinearGradient>
     </SafeAreaView>
   );
 };
@@ -82,17 +151,18 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF',
   },
   container: {
     flex: 1,
+   
     padding: 20,
-    backgroundColor: '#FFF',
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: '#FFB6C1', // Light pink
+    textAlign: 'center',
   },
   cartListContainer: {
     paddingBottom: 20,
@@ -101,86 +171,89 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 15,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 15,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 3,
   },
   itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 5,
-    marginRight: 10,
+    width: 40,
+    height: 40,
+    
+    borderRadius: 10,
+    marginRight: 15,
   },
   itemDetails: {
     flex: 1,
   },
+  itemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
   itemName: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
+    color: '#4A4A4A',
+    flex: 1,
+  },
+  deleteButton: {
+    padding: 5,
   },
   itemPrice: {
     fontSize: 14,
-    color: '#555',
-    marginTop: 5,
+    color: '#888',
+    marginBottom: 10,
   },
   itemTotalPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#333',
-    marginTop: 5,
+    color: '#FFB6C1', // Light pink
+    marginTop: 10,
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
   },
   quantityButton: {
-    backgroundColor: '#FF8DA1',
-    padding: 5,
-    borderRadius: 5,
-    width: 25,
+    backgroundColor: '#FFB6C1', // Light pink
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
     alignItems: 'center',
-  },
-  quantityButtonText: {
-    color: '#FFF',
-    fontWeight: 'bold',
   },
   quantityText: {
-    fontSize: 16,
-    marginHorizontal: 10,
-  },
-  removeButton: {
-    backgroundColor: '#FF8DA1',
-    borderRadius: 5,
-    padding: 5,
-  },
-  removeButtonText: {
-    color: '#FFF',
-    fontSize: 12,
+    fontSize: 14,
+    marginHorizontal: 15,
+    color: '#4A4A4A',
   },
   totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 15,
-    borderTopWidth: 1,
-    borderTopColor: '#E0E0E0',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 15,
+    padding: 20,
+    marginTop: 20,
   },
   totalText: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#4A4A4A',
+    marginBottom: 15,
   },
   checkoutButton: {
-    backgroundColor: '#FF8DA1',
-    borderRadius: 10,
+    backgroundColor: '#FFB6C1', // Light pink
+    borderRadius: 25,
     paddingVertical: 15,
-    paddingHorizontal: 30,
+    marginBottom : 25,
     alignItems: 'center',
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: 'bold',
   },
 });

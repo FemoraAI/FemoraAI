@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet,Image } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 
 const PeriodTracker = () => {
 return (
@@ -19,7 +18,7 @@ return (
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#6244fe',
+    backgroundColor: '#E91E63', // Lighter shade of pink
     borderRadius: 20,
     padding: 20,
     flexDirection: 'row',

@@ -11,7 +11,7 @@ const doctors = [
     time: '10:40 AM - 2:40 PM',
     fee: '$10.50',
     rating: 4.9,
-    image: 'https://www.gettyimages.com/photos/doctor-face'
+    image: 'https://depositphotos.com/photos/doctor-shot.html'
   },
   {
     id: '2',
