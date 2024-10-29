@@ -6,9 +6,12 @@ import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/in
 import * as SplashScreen from 'expo-splash-screen';
 import DoctorSpecialtiesList from './DoctorSpecialtiesList';
 import UpdatedTopDoctorsList from './TopDoctersList';
+import { useNavigation } from '@react-navigation/native';
+
 
 const DoctorScreen = () => {
-  const [modalVisible, setModalVisible] = useState(false);
+  const navigation = useNavigation();
+  
 
   // Load Inter fonts
   let [fontsLoaded] = useFonts({
@@ -91,7 +94,7 @@ const DoctorScreen = () => {
         </View>
 
         <View style={styles.iconSection}>
-          <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => setModalVisible(true)} />
+          <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => navigation.navigate('AppointmentSchedule')} />
           <IconWithLabel icon="medical-outline" label="Prescription" />
           {/* <IconWithLabel icon="alert-circle-outline" label="Emergency" /> */}
         </View>
@@ -150,7 +153,7 @@ const styles = StyleSheet.create({
   headerContainer: {
     flex: 1,
     marginBottom: 20,
-    backgroundColor: '#f1efe6',
+    backgroundColor: '#FFF5F7',
   },
   container: {
     marginTop : 20,
@@ -165,7 +168,7 @@ const styles = StyleSheet.create({
     elevation: 15,
     position: 'relative',
     marginHorizontal: 10,
-    backgroundColor: '#f1efe6',
+    backgroundColor: '#FFF5F7',
   },
   notificationIcon: {
     position: 'absolute',

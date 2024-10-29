@@ -10,6 +10,7 @@ import DoctorsScreen from './Component/DoctorsScreen';
 import CartScreen from './Component/CartScreen';
 import { CartProvider } from './Component/context/CartContext';
 import ProfileManagementScreen from './Component/ProfileManagementScreen';
+import AppointmentSchedulePage from './Component/AppointmentSchedulePage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { StyleSheet } from 'react-native';
 
@@ -29,6 +30,25 @@ const HomeStack = () => {
         name="ProfileManagement" 
         component={ProfileManagementScreen}
         options={{ headerShown: false }} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+const DoctorsStack = () => {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen 
+        name="DoctorsList"
+        component={DoctorsScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen 
+        name="AppointmentSchedule"
+        component={AppointmentSchedulePage}
+        options={{ 
+          headerShown: false,
+        }}
       />
     </Stack.Navigator>
   );
@@ -61,7 +81,7 @@ const App = () => {
           />
           <Tab.Screen
             name="Doctors"
-            component={DoctorsScreen}
+            component={DoctorsStack}
             options={{
               tabBarIcon: ({ color, size }) => (
                 <Icon name="medkit-outline" size={size} color={color} />
