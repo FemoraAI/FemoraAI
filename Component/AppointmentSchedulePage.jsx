@@ -1,11 +1,175 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MeetingTimeModal } from './MeetingTimeModal';
+const UPCOMING_APPOINTMENTS = [
+  {
+    id: 1,
+    doctorName: 'Dr. Emily Lestiryna',
+    specialty: 'General Practitioner',
+    rating: 4.9,
+    reviews: '2.8k',
+    date: 'October 30, 2024',
+    time: '9:00 AM',
+    status: 'Confirmed',
+    image: 'https://via.placeholder.com/60x60.png?text=EL'
+  },
+  {
+    id: 2,
+    doctorName: 'Dr. Michael Chen',
+    specialty: 'Cardiologist',
+    rating: 4.8,
+    reviews: '3.2k',
+    date: 'November 2, 2024',
+    time: '2:30 PM',
+    status: 'Pending',
+    image: 'https://via.placeholder.com/60x60.png?text=MC'
+  }
+];
 
+const HISTORY_APPOINTMENTS = [
+  {
+    id: 3,
+    doctorName: 'Dr. Sarah Johnson',
+    specialty: 'Dermatologist',
+    rating: 4.7,
+    reviews: '1.9k',
+    date: 'October 15, 2024',
+    time: '11:00 AM',
+    status: 'Completed',
+    image: 'https://via.placeholder.com/60x60.png?text=SJ'
+  },
+  {
+    id: 4,
+    doctorName: 'Dr. James Wilson',
+    specialty: 'Orthopedist',
+    rating: 4.9,
+    reviews: '2.1k',
+    date: 'October 8, 2024',
+    time: '3:45 PM',
+    status: 'Completed',
+    image: 'https://via.placeholder.com/60x60.png?text=JW'
+  },
+  {
+    id: 5,
+    doctorName: 'Dr. Emily Lestiryna',
+    specialty: 'General Practitioner',
+    rating: 4.9,
+    reviews: '2.8k',
+    date: 'September 30, 2024',
+    time: '10:15 AM',
+    status: 'Cancelled',
+    image: 'https://via.placeholder.com/60x60.png?text=EL'
+  }
+];
+
+const AppointmentCard = ({ appointment, isUpcoming }) => {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const handleReschedule = () => {
+    setSelectedAppointment(appointment);
+    setModalVisible(true);
+  }; 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Confirmed':
+        return { bg: '#E8F5E9', text: '#4CAF50', icon: 'checkmark-circle' };
+      case 'Pending':
+        return { bg: '#FFF3E0', text: '#FF9800', icon: 'time' };
+      case 'Completed':
+        return { bg: '#E3F2FD', text: '#2196F3', icon: 'checkbox' };
+      case 'Cancelled':
+        return { bg: '#FFEBEE', text: '#F44336', icon: 'close-circle' };
+      default:
+        return { bg: '#E8F5E9', text: '#4CAF50', icon: 'checkmark-circle' };
+    }
+  };
+
+  const statusStyle = getStatusColor(appointment.status);
+
+  const renderButtons = () => {
+    if (!isUpcoming) return null;
+
+    if (appointment.status === 'Pending') {
+      return (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.rescheduleButton}>
+            <Text style={styles.rescheduleButtonText}>Join</Text>
+          </TouchableOpacity>
+          {selectedAppointment && (
+        <MeetingTimeModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSelect={(selectedTime) => {
+          console.log('Selected time:', selectedTime);
+          setModalVisible(false);
+        }}
+      />
+      
+      )}
+        </View>
+      );
+    }
+
+    if (appointment.status === 'Confirmed') {
+      return (
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity style={[styles.rescheduleButton, styles.fullWidthButton]}>
+            <Text style={styles.rescheduleButtonText}>Join</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return null;
+  };
+
+  return (
+    <View style={styles.appointmentCard}>
+      <View style={styles.cardHeader}>
+        <Image
+          source={{ uri: appointment.image }}
+          style={styles.doctorImage}
+        />
+        <View style={styles.appointmentInfo}>
+          <Text style={styles.doctorName}>{appointment.doctorName}</Text>
+          <Text style={styles.doctorSpecialty}>{appointment.specialty}</Text>
+          <View style={styles.ratingContainer}>
+            <Ionicons name="star" size={16} color="#FFD700" />
+            <Text style={styles.ratingText}>{appointment.rating} ({appointment.reviews} reviews)</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.appointmentDetails}>
+        <View style={styles.detailRow}>
+          <View style={styles.detailItem}>
+            <Ionicons name="calendar-outline" size={18} color="#E91E63" />
+            <Text style={styles.detailText}>{appointment.date}</Text>
+          </View>
+          <View style={styles.detailItem}>
+            <Ionicons name="time-outline" size={18} color="#E91E63" />
+            <Text style={styles.detailText}>{appointment.time}</Text>
+          </View>
+        </View>
+        <View style={styles.statusContainer}>
+          <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
+            <Ionicons name={statusStyle.icon} size={16} color={statusStyle.text} />
+            <Text style={[styles.statusText, { color: statusStyle.text }]}>{appointment.status}</Text>
+          </View>
+        </View>
+      </View>
+
+      {renderButtons()}
+    </View>
+  );
+};
 
 const AppointmentSchedulePage = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('upcoming');
   const [activeCategory, setActiveCategory] = useState('all');
+
+  const appointments = activeTab === 'upcoming' ? UPCOMING_APPOINTMENTS : HISTORY_APPOINTMENTS;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -19,7 +183,7 @@ const AppointmentSchedulePage = ({ navigation }) => {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Appointments</Text>
         <TouchableOpacity style={styles.calendarButton}>
-          <Ionicons name="calendar-outline" size={24} color= 'transparent'/>
+          <Ionicons name="calendar-outline" size={24} color="transparent"/>
         </TouchableOpacity>
       </View>
 
@@ -41,50 +205,13 @@ const AppointmentSchedulePage = ({ navigation }) => {
         
       {/* Appointment Cards */}
       <ScrollView style={styles.cardsContainer}>
-        <View style={styles.appointmentCard}>
-          <View style={styles.cardHeader}>
-            <Image
-              source={{ uri: 'https://via.placeholder.com/60x60.png?text=EL' }}
-              style={styles.doctorImage}
-            />
-            <View style={styles.appointmentInfo}>
-              <Text style={styles.doctorName}>Dr. Emily Lestiryna</Text>
-              <Text style={styles.doctorSpecialty}>General Practitioner</Text>
-              <View style={styles.ratingContainer}>
-                <Ionicons name="star" size={16} color="#FFD700" />
-                <Text style={styles.ratingText}>4.9 (2.8k reviews)</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.appointmentDetails}>
-            <View style={styles.detailRow}>
-              <View style={styles.detailItem}>
-                <Ionicons name="calendar-outline" size={18} color="#E91E63" />
-                <Text style={styles.detailText}>October 15, 2023</Text>
-              </View>
-              <View style={styles.detailItem}>
-                <Ionicons name="time-outline" size={18} color="#E91E63" />
-                <Text style={styles.detailText}>9:00 AM</Text>
-              </View>
-            </View>
-            <View style={styles.statusContainer}>
-              <View style={styles.statusBadge}>
-                <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
-                <Text style={styles.statusText}>Confirmed</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.cancelButton}>
-              <Text style={styles.cancelButtonText}>Reschedule</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.rescheduleButton}>
-              <Text style={styles.rescheduleButtonText}>Join</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        {appointments.map((appointment) => (
+          <AppointmentCard 
+            key={appointment.id}
+            appointment={appointment}
+            isUpcoming={activeTab === 'upcoming'}
+          />
+        ))}
       </ScrollView>
     </SafeAreaView>
   );
@@ -93,7 +220,7 @@ const AppointmentSchedulePage = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFF5F8', // Lighter pink background
+    backgroundColor: '#FFF5F8',
   },
   header: {
     flexDirection: 'row',
@@ -140,37 +267,6 @@ const styles = StyleSheet.create({
   activeTabText: {
     color: '#FFFFFF',
   },
-  categoryContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 16,
-  },
-  categoryContent: {
-    paddingHorizontal: 20,
-  },
-  categoryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFE4EC',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginRight: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#FFD6E1',
-  },
-  activeCategoryButton: {
-    backgroundColor: '#E91E63',
-    borderColor: '#E91E63',
-  },
-  categoryText: {
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#E91E63',
-  },
-  activeCategoryText: {
-    color: '#FFFFFF',
-  },
   cardsContainer: {
     flex: 1,
     padding: 20,
@@ -184,6 +280,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 5,
+    marginBottom: 16,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -246,7 +343,6 @@ const styles = StyleSheet.create({
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -254,13 +350,13 @@ const styles = StyleSheet.create({
   statusText: {
     marginLeft: 6,
     fontSize: 14,
-    color: '#4CAF50',
     fontWeight: '600',
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    marginTop: 16,
   },
   cancelButton: {
     flex: 1,
@@ -285,6 +381,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '600',
     fontSize: 15,
+  },
+  fullWidthButton: {
+    flex: 1,
   },
 });
 

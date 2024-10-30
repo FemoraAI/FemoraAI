@@ -12,7 +12,10 @@ import { CartProvider } from './Component/context/CartContext';
 import ProfileManagementScreen from './Component/ProfileManagementScreen';
 import AppointmentSchedulePage from './Component/AppointmentSchedulePage';
 import Icon from 'react-native-vector-icons/Ionicons';
+import PrescriptionPage from './Component/PrescriptionPage';
+import DoctorPage from './Component/DoctorPage';
 import { StyleSheet } from 'react-native';
+import PeriodTrackerPage from './Component/PeriodTrackerPage';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -24,6 +27,11 @@ const HomeStack = () => {
       <Stack.Screen 
         name="HomeScreen" 
         component={HeaderScreen}
+        options={{ headerShown: false }} 
+      />
+       <Stack.Screen 
+        name="PeriodTracker" 
+        component={PeriodTrackerPage}
         options={{ headerShown: false }} 
       />
       <Stack.Screen 
@@ -50,7 +58,20 @@ const DoctorsStack = () => {
           headerShown: false,
         }}
       />
+       <Stack.Screen 
+        name="pres"
+        component={PrescriptionPage}
+        options={{ 
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen 
+        name="list" 
+        component={DoctorPage}
+        options={{ headerShown: false }} 
+      />
     </Stack.Navigator>
+    
   );
 };
 
@@ -112,7 +133,7 @@ const styles = StyleSheet.create({
     left: 20,
     right: 20,
     height: 60,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFE4EC',
     borderTopWidth: 0,
     elevation: 5,
     borderRadius: 20,

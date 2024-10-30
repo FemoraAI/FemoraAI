@@ -35,10 +35,9 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
   }, [index]);
 
   return (
-    <SafeAreaView>
-    <Animated.View style={[{ transform: [{ translateY }], opacity }]}>
+    <Animated.View style={[styles.cartItemContainer, { transform: [{ translateY }], opacity }]}>
       <LinearGradient
-        colors={['white', 'white']}
+        colors={['#FFF5F5', '#FFF0F5']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.cartItem}
@@ -58,7 +57,7 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
               <MaterialCommunityIcons 
                 name="trash-can-outline" 
                 size={24} 
-                color="#FF6B6B" 
+                color="#FF9999" 
               />
             </TouchableOpacity>
           </View>
@@ -87,7 +86,6 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
         </View>
       </LinearGradient>
     </Animated.View>
-    </SafeAreaView>
   );
 });
 
@@ -117,12 +115,12 @@ const CartScreen = () => {
   ), [handleQuantityChange, handleRemoveItem]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} >
       <LinearGradient
         colors={['#FFE5E5', '#FFF0F5', '#F0F8FF']}
         style={styles.container}
       >
-        <Text style={styles.title}>Your Cart</Text>
+        <Text style={styles.title}>Cart</Text>
         
         <FlatList
           data={cartItems}
@@ -151,40 +149,44 @@ const CartScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    color: '#FFE5E5',
   },
   container: {
     flex: 1,
-   
     padding: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#FFB6C1', // Light pink
+    color: '#FF9999',
     textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   cartListContainer: {
     paddingBottom: 20,
   },
+  cartItemContainer: {
+    marginBottom: 20,
+  },
   cartItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    borderRadius: 15,
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: 20,
+    borderRadius: 25,
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   itemImage: {
-    width: 40,
-    height: 40,
-    
-    borderRadius: 10,
-    marginRight: 15,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    marginRight: 20,
   },
   itemDetails: {
     flex: 1,
@@ -193,10 +195,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 10,
   },
   itemName: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#4A4A4A',
     flex: 1,
@@ -205,22 +207,25 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   itemPrice: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#888',
     marginBottom: 10,
   },
   itemTotalPrice: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#FFB6C1', // Light pink
+    color: '#FF9999',
     marginTop: 10,
   },
   quantityControl: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 5,
   },
   quantityButton: {
-    backgroundColor: '#FFB6C1', // Light pink
+    backgroundColor: '#FFB6C1',
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -228,32 +233,43 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 16,
     marginHorizontal: 15,
     color: '#4A4A4A',
   },
   totalContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 25,
     padding: 20,
     marginTop: 20,
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   totalText: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#4A4A4A',
+    color: '#FF9999',
     marginBottom: 15,
+    textAlign: 'center',
   },
   checkoutButton: {
-    backgroundColor: '#FFB6C1', // Light pink
+    backgroundColor: '#FFB6C1',
     borderRadius: 25,
     paddingVertical: 15,
-    marginBottom : 25,
+    marginBottom: 25,
     alignItems: 'center',
+    shadowColor: '#FF9999',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 6,
   },
   buttonText: {
     color: '#FFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
   },
 });

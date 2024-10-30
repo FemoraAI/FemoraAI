@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import MeetingTimeModal from './MeetingTimeModal';
 
 const doctors = [
   {
@@ -36,83 +36,83 @@ const doctors = [
   },
 ];
 
-const BookingModal = ({ visible, onClose, doctor }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedTime, setSelectedTime] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+// const BookingModal = ({ visible, onClose, doctor }) => {
+//   const [selectedDate, setSelectedDate] = useState(new Date());
+//   const [selectedTime, setSelectedTime] = useState(new Date());
+//   const [showDatePicker, setShowDatePicker] = useState(false);
+//   const [showTimePicker, setShowTimePicker] = useState(false);
 
-  const handleDateChange = (event, date) => {
-    setShowDatePicker(false);
-    if (date) setSelectedDate(date);
-  };
+//   const handleDateChange = (event, date) => {
+//     setShowDatePicker(false);
+//     if (date) setSelectedDate(date);
+//   };
 
-  const handleTimeChange = (event, time) => {
-    setShowTimePicker(false);
-    if (time) setSelectedTime(time);
-  };
+//   const handleTimeChange = (event, time) => {
+//     setShowTimePicker(false);
+//     if (time) setSelectedTime(time);
+//   };
 
-  const handleBookAppointment = () => {
-    console.log('Booking appointment for:', doctor.name);
-    console.log('Date:', selectedDate.toDateString());
-    console.log('Time:', selectedTime.toLocaleTimeString());
-    onClose();
-  };
+//   const handleBookAppointment = () => {
+//     console.log('Booking appointment for:', doctor.name);
+//     console.log('Date:', selectedDate.toDateString());
+//     console.log('Time:', selectedTime.toLocaleTimeString());
+//     onClose();
+//   };
 
-  return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Book Appointment</Text>
-          <Text style={styles.doctorName}>{doctor.name}</Text>
+//   return (
+//     <Modal
+//       animationType="slide"
+//       transparent={true}
+//       visible={visible}
+//       onRequestClose={onClose}
+//     >
+//       <View style={styles.modalOverlay}>
+//         <View style={styles.modalContent}>
+//           <Text style={styles.modalTitle}>Book Appointment</Text>
+//           <Text style={styles.doctorName}>{doctor.name}</Text>
           
-          <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
-            <Ionicons name="calendar-outline" size={20} color="#FF8DA1" />
-            <Text style={styles.dateTimeText}>{selectedDate.toDateString()}</Text>
-          </TouchableOpacity>
+//           <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowDatePicker(true)}>
+//             <Ionicons name="calendar-outline" size={20} color="#FF8DA1" />
+//             <Text style={styles.dateTimeText}>{selectedDate.toDateString()}</Text>
+//           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
-            <Ionicons name="time-outline" size={20} color="#FF8DA1" />
-            <Text style={styles.dateTimeText}>{selectedTime.toLocaleTimeString()}</Text>
-          </TouchableOpacity>
+//           <TouchableOpacity style={styles.dateTimeButton} onPress={() => setShowTimePicker(true)}>
+//             <Ionicons name="time-outline" size={20} color="#FF8DA1" />
+//             <Text style={styles.dateTimeText}>{selectedTime.toLocaleTimeString()}</Text>
+//           </TouchableOpacity>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display="default"
-              onChange={handleDateChange}
-              minimumDate={new Date()}
-              maximumDate={new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)}
-            />
-          )}
+//           {showDatePicker && (
+//             <DateTimePicker
+//               value={selectedDate}
+//               mode="date"
+//               display="default"
+//               onChange={handleDateChange}
+//               minimumDate={new Date()}
+//               maximumDate={new Date(Date.now() + 6 * 24 * 60 * 60 * 1000)}
+//             />
+//           )}
 
-          {showTimePicker && (
-            <DateTimePicker
-              value={selectedTime}
-              mode="time"
-              display="default"
-              onChange={handleTimeChange}
-            />
-          )}
+//           {showTimePicker && (
+//             <DateTimePicker
+//               value={selectedTime}
+//               mode="time"
+//               display="default"
+//               onChange={handleTimeChange}
+//             />
+//           )}
 
-          <TouchableOpacity style={styles.bookButton} onPress={handleBookAppointment}>
-            <Text style={styles.bookButtonText}>Confirm Booking</Text>
-          </TouchableOpacity>
+//           <TouchableOpacity style={styles.bookButton} onPress={handleBookAppointment}>
+//             <Text style={styles.bookButtonText}>Confirm Booking</Text>
+//           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-};
+//           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+//             <Text style={styles.closeButtonText}>Close</Text>
+//           </TouchableOpacity>
+//         </View>
+//       </View>
+//     </Modal>
+//   );
+// };
 
 const DoctorCard = ({ doctor, onBookPress }) => (
   <View style={styles.card}>
@@ -160,11 +160,15 @@ const TopDoctorsList = () => {
         showsVerticalScrollIndicator={false}
       />
       {selectedDoctor && (
-        <BookingModal
-          visible={modalVisible}
-          onClose={() => setModalVisible(false)}
-          doctor={selectedDoctor}
-        />
+        <MeetingTimeModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onSelect={(selectedTime) => {
+          console.log('Selected time:', selectedTime);
+          setModalVisible(false);
+        }}
+      />
+      
       )}
     </View>
   );

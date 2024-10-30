@@ -5,8 +5,9 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFonts, Inter_400Regular, Inter_700Bold } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import DoctorSpecialtiesList from './DoctorSpecialtiesList';
-import UpdatedTopDoctorsList from './TopDoctersList';
+import TopDoctorsList from './TopDoctersList';
 import { useNavigation } from '@react-navigation/native';
+import WellnessHeader from './WellnessHeader';
 
 
 const DoctorScreen = () => {
@@ -45,60 +46,11 @@ const DoctorScreen = () => {
   if (!fontsLoaded) {
     return null; // Render nothing while fonts are loading
   }
-
-  const doctors = [
-    { id: 1, name: 'Dr. Jane Doe', specialization: 'Cardiologist', image: require('../assets/15.png'), rating: 4.5 },
-    { id: 2, name: 'Dr. John Smith', specialization: 'Dermatologist', image: require('../assets/15.png'), rating: 4.0 },
-    { id: 3, name: 'Dr. Emma Brown', specialization: 'Pediatrician', image: require('../assets/15.png'), rating: 4.7 },
-    { id: 4, name: 'Dr. Emily White', specialization: 'Gynecologist', image: require('../assets/15.png'), rating: 5.0 },
-  ];
-
- 
-  const renderDoctorCard = ({ item }) => (
-    <View style={styles.doctorCard}>
-      <Image source={item.image} style={styles.doctorImage} />
-      <Text style={styles.doctorName}>{item.name}</Text>
-      <Text style={styles.doctorSpecialization}>{item.specialization}</Text>
-      <View style={styles.ratingContainer}>
-        {Array.from({ length: 5 }, (_, index) => (
-          <Ionicons
-            key={index}
-            name={index < Math.floor(item.rating) ? 'star' : 'star-outline'}
-            size={16}
-            color="#FFD700"
-          />
-        ))}
-        <Text style={styles.ratingText}>({item.rating})</Text>
-      </View>
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.bookButton}>
-          <Text style={styles.buttonText}>Book</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.chatButton}>
-          <Text style={styles.buttonText}>Chat</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.headerContainer} onLayout={onLayoutRootView}>
-      <LinearGradient colors={['#FFCCCB', '#FFB6C1']} style={styles.container}>
-        <TouchableOpacity style={styles.notificationIcon}>
-          <Ionicons name="notifications-outline" size={30} color="#FFF" />
-        </TouchableOpacity>
-
-        <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>Hi LADY!</Text>
-          <Text style={styles.questionText}>How do you feel today?</Text>
-        </View>
-
-        <View style={styles.iconSection}>
-          <IconWithLabel icon="calendar-outline" label="Appointment" onPress={() => navigation.navigate('AppointmentSchedule')} />
-          <IconWithLabel icon="medical-outline" label="Prescription" />
-          {/* <IconWithLabel icon="alert-circle-outline" label="Emergency" /> */}
-        </View>
-      </LinearGradient>
+      <View>
+      <WellnessHeader />
+      </View>
       <View>
         <DoctorSpecialtiesList />
       </View> 
@@ -114,7 +66,7 @@ const DoctorScreen = () => {
         />
       </View> */}
       <View style={styles.topDoctorsContainer}>
-  <UpdatedTopDoctorsList />
+  <TopDoctorsList />
 </View>
       
 
@@ -136,19 +88,11 @@ const DoctorScreen = () => {
 };
 
 // Define IconWithLabel component here
-const IconWithLabel = ({ icon, label, onPress }) => (
-  <View style={styles.iconWrapper}>
-    <TouchableOpacity style={styles.iconContainer} onPress={onPress}>
-      <Ionicons name={icon} size={30} color="#FF8DA1" />
-    </TouchableOpacity>
-    <Text style={styles.iconLabel}>{label}</Text>
-  </View>
-);
 
 const styles = StyleSheet.create({
   topDoctorsContainer: {
     flex :1,
-    marginTop: 20,
+    marginTop: 5,
   },
   headerContainer: {
     flex: 1,

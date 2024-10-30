@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet,Image } from 'react-native';
+import { View, Text, StyleSheet,Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 const PeriodTracker = () => {
-return (
+  const navigation  = useNavigation(); 
+  return (
+  <TouchableOpacity onPress={() => navigation.navigate('PeriodTracker')} >
     <View style={styles.container}>
         <View style={styles.textContainer}>
             <Text style={styles.periodText}>Period starts in.</Text>
@@ -13,6 +16,7 @@ return (
             <Image source={require('../assets/calendar.png')} style={{ width: 100, height: 100 }} />
         </View>
     </View>
+  </TouchableOpacity>
 );
 };
 
