@@ -1,11 +1,12 @@
 import './gesture-handler';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import HeaderScreen from './Component/HomeScreen';
 import { UserProvider } from './Component/context/UserContext';
-
+import { useUser } from './Component/context/UserContext';
+import LoginScreen from './Component/LoginScreen';
 import DoctorsScreen from './Component/DoctorsScreen';
 import CartScreen from './Component/CartScreen';
 import { CartProvider } from './Component/context/CartContext';
@@ -74,10 +75,19 @@ const DoctorsStack = () => {
     
   );
 };
+const AppContent = () => {
+  const { userData, checkLoginStatus } = useUser();
 
-const App = () => {
+  // Check login status when app starts
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+  if (!userData.isLoggedIn) {
+    return <LoginScreen />;
+  }
+
   return (
-    <UserProvider>
+
       
     <CartProvider>
       <NavigationContainer>
@@ -121,9 +131,15 @@ const App = () => {
         </Tab.Navigator>
       </NavigationContainer>
     </CartProvider>
-    
-    </UserProvider>
 
+
+  );
+};
+const App = () => {
+  return (
+    <UserProvider>
+      <AppContent />
+    </UserProvider>
   );
 };
 

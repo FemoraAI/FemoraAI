@@ -16,8 +16,46 @@ export const UserProvider = ({ children }) => {
     lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
     periodDays: '5', // Default period duration
     cycleDays: '28', // Default cycle length
+    isLoggedIn: false,
   });
+  const login = async () => {
+    // Update login state
+    setUserData(prev => ({
+      ...prev,
+      isLoggedIn: true
+    }));
+    try {
+      await AsyncStorage.setItem('isLoggedIn', 'true');
+    } catch (error) {
+      console.error('Failed to save login state', error);
+    }
+  }; // Logout method
+  const logout = async () => {
+    // Update login state
+    setUserData(prev => ({
+      ...prev,
+      isLoggedIn: false
+    }));
+    try {
+      await AsyncStorage.removeItem('isLoggedIn');
+    } catch (error) {
+      console.error('Failed to remove login state', error);
+    }
+  };
 
+  const checkLoginStatus = async () => {
+    try {
+      const loggedIn = await AsyncStorage.getItem('isLoggedIn');
+      if (loggedIn === 'true') {
+        setUserData(prev => ({
+          ...prev,
+          isLoggedIn: true
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to check login status', error);
+    }
+  };
   const updateUserData = (newData) => {
     // If there's a new lastPeriodStart date, update it
     if (newData.lastPeriodStart) {
@@ -33,6 +71,13 @@ export const UserProvider = ({ children }) => {
       const days = parseInt(newData.periodDays);
       if (isNaN(days) || days < 1 || days > 10) {
         console.error('Invalid period duration');
+        return;
+      }
+    }
+    if (newData.phone) {
+      const phoneRegex = /^[0-9]{10}$/; // Example regex for a 10-digit phone number
+      if (!phoneRegex.test(newData.phone)) {
+        console.error('Invalid phone number format');
         return;
       }
     }
@@ -165,7 +210,10 @@ export const UserProvider = ({ children }) => {
         getFertilityWindow,
         isInPeriod,
         getPeriodStatus,
-        getActiveDatesForMonth
+        getActiveDatesForMonth,
+        checkLoginStatus,
+        login,
+        logout,
       }}
     >
       {children}
