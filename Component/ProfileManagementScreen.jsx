@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   View, 
   Text, 
@@ -10,22 +10,53 @@ import {
   SafeAreaView,
   StatusBar,
   Platform,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Alert
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from './context/UserContext';
+import moment from 'moment';
 
 const ProfileManagementScreen = ({ navigation }) => {
   const { userData, updateUserData } = useUser();
+  const [localUserData, setLocalUserData] = useState({
+    ...userData,
+    lastPeriodStart: userData.lastPeriodStart || moment().format('YYYY-MM-DD'),
+    periodDays: userData.periodDays || '',
+    cycleDays: userData.cycleLength || ''
+  });
 
   const handleSave = () => {
-    console.log('Profile data saved:', userData);
+    // Validate period tracking data
+    const periodDays = parseInt(localUserData.periodDays);
+    const cycleDays = parseInt(localUserData.cycleDays);
+
+    if (!moment(localUserData.lastPeriodStart, 'YYYY-MM-DD').isValid()) {
+      Alert.alert('Invalid Input', 'Please enter a valid date for your last period');
+      return;
+    }
+
+    if (periodDays < 1 || periodDays > 10) {
+      Alert.alert('Invalid Input', 'Period duration should be between 1 and 10 days');
+      return;
+    }
+
+    if (cycleDays < 21 || cycleDays > 35) {
+      Alert.alert('Invalid Input', 'Average cycle length should be between 21 and 35 days');
+      return;
+    }
+
+    updateUserData(localUserData);
+    console.log('Profile data saved:', localUserData);
     navigation.goBack();
   };
 
   const handleInputChange = (field, value) => {
-    updateUserData({ [field]: value });
+    setLocalUserData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   return (
@@ -57,7 +88,7 @@ const ProfileManagementScreen = ({ navigation }) => {
         >
           <View style={styles.profileInfo}>
             <Image 
-              source={userData.profileImage || require('../assets/15.png')} 
+              source={localUserData.profileImage || require('../assets/15.png')} 
               style={styles.profileImage} 
             />
             <TouchableOpacity style={styles.editImageButton}>
@@ -65,17 +96,33 @@ const ProfileManagementScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
 
-          {renderInput('Name', userData.name, (value) => handleInputChange('name', value))}
-          {renderInput('Email', userData.email, (value) => handleInputChange('email', value), 'email-address')}
-          {renderInput('Phone Number', userData.phone, (value) => handleInputChange('phone', value), 'phone-pad')}
-          {renderInput('Address', userData.address, (value) => handleInputChange('address', value), 'default', true)}
+          {renderInput('Name', localUserData.name, (value) => handleInputChange('name', value))}
+          {renderInput('Email', localUserData.email, (value) => handleInputChange('email', value), 'email-address')}
+          {renderInput('Phone Number', localUserData.phone, (value) => handleInputChange('phone', value), 'phone-pad')}
+          {renderInput('Address', localUserData.address, (value) => handleInputChange('address', value), 'default', true)}
 
-          <Text style={styles.sectionTitle}>Period Cycle Management</Text>
+          <Text style={styles.sectionTitle}>Period Information</Text>
 
-          {renderInput('Cycle Length (days)', userData.cycleLength, 
-            (value) => handleInputChange('cycleLength', value), 'numeric')}
-          {renderInput('Period Duration (days)', userData.periodDays, 
-            (value) => handleInputChange('periodDays', value), 'numeric')}
+          {renderInput('Last Period Start Date (YYYY-MM-DD)', 
+            localUserData.lastPeriodStart, 
+            (value) => handleInputChange('lastPeriodStart', value))}
+
+          {renderInput('Period Duration (1-10 days)', 
+            localUserData.periodDays, 
+            (value) => handleInputChange('periodDays', value), 
+            'numeric')}
+
+          {renderInput('Average Days Between Periods (21-35)', 
+            localUserData.cycleDays, 
+            (value) => handleInputChange('cycleDays', value), 
+            'numeric')}
+
+          <View style={styles.infoBox}>
+            <MaterialIcons name="info-outline" size={20} color="#FF85A2" />
+            <Text style={styles.infoText}>
+              This information helps us provide more accurate predictions and insights about your menstrual cycle.
+            </Text>
+          </View>
 
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <LinearGradient
@@ -96,9 +143,9 @@ const renderInput = (label, value, onChangeText, keyboardType = 'default', multi
     <Text style={styles.inputLabel}>{label}</Text>
     <TextInput
       style={[styles.input, multiline && styles.multilineInput]}
-      value={value}
+      value={String(value)}
       onChangeText={onChangeText}
-      placeholder={`Enter your ${label.toLowerCase()}`}
+      placeholder={`Enter ${label}`}
       keyboardType={keyboardType}
       multiline={multiline}
     />
@@ -106,6 +153,55 @@ const renderInput = (label, value, onChangeText, keyboardType = 'default', multi
 );
 
 const styles = StyleSheet.create({
+  // ... (previous styles remain the same)
+  
+  infoBox: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    padding: 15,
+    marginTop: 20,
+    alignItems: 'center',
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  infoText: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  
+  periodHistoryContainer: {
+    marginTop: 20,
+    backgroundColor: '#FFF',
+    borderRadius: 15,
+    padding: 15,
+    shadowColor: '#FFB6C1',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  periodHistoryTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FF85A2',
+    marginBottom: 10,
+  },
+  periodHistoryItem: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE4E9',
+  },
+  periodHistoryText: {
+    fontSize: 16,
+    color: '#666',
+  },
   container: {
     flex: 1,
     backgroundColor: '#FFF5F7',

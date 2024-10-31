@@ -78,7 +78,7 @@ const DoctorsStack = () => {
 const App = () => {
   return (
     <UserProvider>
-
+      
     <CartProvider>
       <NavigationContainer>
         <Tab.Navigator
@@ -121,6 +121,7 @@ const App = () => {
         </Tab.Navigator>
       </NavigationContainer>
     </CartProvider>
+    
     </UserProvider>
 
   );
