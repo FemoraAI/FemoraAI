@@ -6,17 +6,17 @@ const UserContext = createContext();
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
     // Basic user information
-    name: 'Jimmy Sullivan',
+    name: 'Ramanjit',
     email: 'jimmy.sullivan@example.com',
     phone: '',
-    address: '',
+    address: 'Hostel 34, Stanford Ave, California',
     profileImage: null,
 
     // Period tracking data
     lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
     periodDays: '5', // Default period duration
     cycleDays: '28', // Default cycle length
-    isLoggedIn: false,
+    isLoggedIn: true,
   });
   const login = async () => {
     // Update login state

@@ -1,9 +1,11 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo,useState} from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
   FlatList, 
+  Modal,
+  ScrollView,
   TouchableOpacity, 
   Image, 
   SafeAreaView, 
@@ -12,7 +14,69 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCart } from './context/CartContext';
+import { useUser } from './context/UserContext'; // Added import for user context
 
+const CheckoutModal = ({ visible, onClose, totalAmount }) => {
+  const { userData } = useUser();
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <LinearGradient
+            colors={['#FFF5F5', '#FFF0F5']}
+            style={styles.modalGradient}
+          >
+            <ScrollView>
+              <Text style={styles.modalTitle}>Checkout Details</Text>
+              
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Delivery Address</Text>
+                  <Text style={styles.detailText}>{userData.name}</Text>
+                  <Text style={styles.detailText}>{userData.address}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Contact Details</Text>
+                  <Text style={styles.detailText}>Phone: {userData.phone}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Order Summary</Text>
+                  <Text style={styles.detailText}>Total Amount: ₹{totalAmount}</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.upiButton}
+                  onPress={() => {
+                    console.log('Processing UPI payment for:', totalAmount);
+                    // Implement UPI payment logic here
+                  }}
+                >
+                  <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={styles.upiIcon} />
+                  <Text style={styles.upiButtonText}>Pay ₹{totalAmount} with UPI</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={onClose}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
   const translateY = React.useRef(new Animated.Value(50)).current;
   const opacity = React.useRef(new Animated.Value(0)).current;
@@ -91,6 +155,8 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
 
 const CartScreen = () => {
   const { cartItems, updateQuantity, removeFromCart } = useCart();
+  const { userDetails } = useUser(); // Get user details from context
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   const handleQuantityChange = useCallback((id, type) => {
     updateQuantity(id, type);
@@ -115,7 +181,7 @@ const CartScreen = () => {
   ), [handleQuantityChange, handleRemoveItem]);
 
   return (
-    <SafeAreaView style={styles.safeArea} >
+    <SafeAreaView style={styles.safeArea}>
       <LinearGradient
         colors={['#FFE5E5', '#FFF0F5', '#F0F8FF']}
         style={styles.container}
@@ -134,13 +200,18 @@ const CartScreen = () => {
           <Text style={styles.totalText}>Total: ₹{totalAmount}</Text>
           <TouchableOpacity 
             style={styles.checkoutButton}
-            onPress={() => {
-              console.log('Proceeding to checkout with total:', totalAmount);
-            }}
+            onPress={() => setIsModalVisible(true)}
           >
             <Text style={styles.buttonText}>Proceed to Checkout</Text>
           </TouchableOpacity>
         </View>
+
+        <CheckoutModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          totalAmount={totalAmount}
+
+        />
       </LinearGradient>
     </SafeAreaView>
   );
@@ -272,6 +343,153 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  modalGradient: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF9999',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 15,
+    padding: 15,
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4A4A4A',
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  upiButton: {
+    backgroundColor: '#FF9999',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  upiIcon: {
+    marginRight: 10,
+  },
+  upiButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#FFE5E5',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: '#FF9999',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+ modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  modalGradient: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF9999',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 15,
+    padding: 15,
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4A4A4A',
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  upiButton: {
+    backgroundColor: '#FF9999',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  upiIcon: {
+    marginRight: 10,
+  },
+  upiButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#FFE5E5',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: '#FF9999',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
+
 
 export default CartScreen;

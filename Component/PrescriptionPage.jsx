@@ -2,7 +2,148 @@ import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Modal } from 'react-native';
+import { useUser } from './context/UserContext';
 
+const CheckoutModal = ({ visible, onClose, totalAmount }) => {
+  const { userData } = useUser();
+
+  return (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={visible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <LinearGradient
+            colors={['#FFF5F5', '#FFF0F5']}
+            style={styles.modalGradient}
+          >
+            <ScrollView>
+              <Text style={styles.modalTitle}>Checkout Details</Text>
+              
+              <View style={styles.detailsContainer}>
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Delivery Address</Text>
+                  <Text style={styles.detailText}>{userData.name}</Text>
+                  <Text style={styles.detailText}>{userData.address}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Contact Details</Text>
+                  <Text style={styles.detailText}>Phone: {userData.phone}</Text>
+                </View>
+
+                <View style={styles.detailSection}>
+                  <Text style={styles.detailHeader}>Order Summary</Text>
+                  <Text style={styles.detailText}>Total Amount: ₹{totalAmount}</Text>
+                </View>
+
+                <TouchableOpacity 
+                  style={styles.upiButton}
+                  onPress={() => {
+                    console.log('Processing UPI payment for:', totalAmount);
+                    // Implement UPI payment logic here
+                  }}
+                >
+                  <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={styles.upiIcon} />
+                  <Text style={styles.upiButtonText}>Pay ₹{totalAmount} with UPI</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.closeButton}
+                  onPress={onClose}
+                >
+                  <Text style={styles.closeButtonText}>Close</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </LinearGradient>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
+  const translateY = React.useRef(new Animated.Value(50)).current;
+  const opacity = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 300,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 100,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [index]);
+
+  return (
+    <Animated.View style={[styles.cartItemContainer, { transform: [{ translateY }], opacity }]}>
+      <LinearGradient
+        colors={['#FFF5F5', '#FFF0F5']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cartItem}
+      >
+        <Image 
+          source={item.image} 
+          style={styles.itemImage} 
+          resizeMode="contain"
+        />
+        <View style={styles.itemDetails}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <TouchableOpacity 
+              onPress={() => onRemove(item.id)}
+              style={styles.deleteButton}
+            >
+              <MaterialCommunityIcons 
+                name="trash-can-outline" 
+                size={24} 
+                color="#FF9999" 
+              />
+            </TouchableOpacity>
+          </View>
+          
+          <Text style={styles.itemPrice}>₹{item.price.toFixed(2)} each</Text>
+          
+          <View style={styles.quantityControl}>
+            <TouchableOpacity 
+              onPress={() => onQuantityChange(item.id, 'decrease')} 
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="minus" size={18} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <TouchableOpacity 
+              onPress={() => onQuantityChange(item.id, 'increase')} 
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.itemTotalPrice}>
+            Total: ₹{(item.price * item.quantity).toFixed(2)}
+          </Text>
+        </View>
+      </LinearGradient>
+    </Animated.View>
+  );
+  
+});
 const PRESCRIPTIONS = [
   {
     id: 1,
@@ -79,8 +220,7 @@ const PRESCRIPTIONS = [
 ];
 
 const PrescriptionCard = ({ prescription, onOrder }) => {
-    
-    const navigation = useNavigation();
+  const [isModalVisible, setIsModalVisible] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [selectedMeds, setSelectedMeds] = useState({});
 
@@ -208,13 +348,19 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
           )}
         </View>
       )}
+      <CheckoutModal
+          visible={isModalVisible}
+          onClose={() => setIsModalVisible(false)}
+          totalAmount={totalAmount}
+
+        />
     </View>
   );
 };
 
 const PrescriptionPage = ({ navigation }) => {
   const [prescriptions, setPrescriptions] = useState(PRESCRIPTIONS);
-
+  
   const handleOrder = (prescriptionId, medications, totalAmount) => {
     // Handle order logic here
     setPrescriptions(prev => 
@@ -443,6 +589,82 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     backgroundColor: '#FFB6C1',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 25,
+    overflow: 'hidden',
+  },
+  modalGradient: {
+    padding: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FF9999',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  detailsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 15,
+    padding: 15,
+  },
+  detailSection: {
+    marginBottom: 20,
+  },
+  detailHeader: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4A4A4A',
+    marginBottom: 10,
+  },
+  detailText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#FF6B6B',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  upiButton: {
+    backgroundColor: '#FF9999',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  upiIcon: {
+    marginRight: 10,
+  },
+  upiButtonText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#FFE5E5',
+    padding: 15,
+    borderRadius: 15,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: '#FF9999',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
