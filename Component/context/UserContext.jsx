@@ -16,7 +16,7 @@ export const UserProvider = ({ children }) => {
     lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
     periodDays: '5', // Default period duration
     cycleDays: '28', // Default cycle length
-    isLoggedIn: true,
+    isLoggedIn: false,
   });
   const login = async () => {
     // Update login state
