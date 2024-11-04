@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useCart } from './context/CartContext';
+
 
 const products = [
   {
@@ -37,23 +39,31 @@ const products = [
   },
   
 ];
-
 const ProductCard = ({ product }) => {
-  const [quantity, setQuantity] = useState(0);
+  const { cartItems, addToCart, updateQuantity } = useCart();
+  const cartItem = cartItems.find((item) => item.id === product.id);
+  const quantity = cartItem?.quantity || 0;
+  
 
-  const handleAdd = () => setQuantity(1);
-  const handleIncrement = () => setQuantity(prev => prev + 1);
-  const handleDecrement = () => setQuantity(prev => Math.max(0, prev - 1));
+  const handleAdd = () => addToCart(product);
+  const handleIncrement = () => updateQuantity(product.id, 'increase');
+  const handleDecrement = () => updateQuantity(product.id, 'decrease');
 
   return (
     <View style={styles.card}>
-      <Image source={{ uri: product.image }} style={styles.image} resizeMode="contain"  />
+      <Image 
+        source={{ uri: product.image }} 
+        style={styles.image} 
+        resizeMode="contain" 
+      />
       <Text style={styles.name}>{product.name}</Text>
       <Text style={styles.weight}>Qty: {product.pcs}</Text>
+      
       <View style={styles.priceContainer}>
         <Text style={styles.price}>₹{product.price}</Text>
         <Text style={styles.originalPrice}>₹{product.originalPrice}</Text>
       </View>
+      
       {quantity === 0 ? (
         <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
           <Text style={styles.addButtonText}>ADD</Text>
@@ -61,11 +71,11 @@ const ProductCard = ({ product }) => {
       ) : (
         <View style={styles.quantitySelector}>
           <TouchableOpacity onPress={handleDecrement}>
-            <Ionicons name="remove" color="#fff" size={18} />
+            <Ionicons name="remove" color="#fff" size={24} />
           </TouchableOpacity>
           <Text style={styles.quantityText}>{quantity}</Text>
           <TouchableOpacity onPress={handleIncrement}>
-            <Ionicons name="add" color="#fff" size={18} />
+            <Ionicons name="add" color="#fff" size={24} />
           </TouchableOpacity>
         </View>
       )}
@@ -74,11 +84,13 @@ const ProductCard = ({ product }) => {
 };
 
 const HorizontalProductList = () => {
+  const renderProduct = ({ item }) => <ProductCard product={item} />;
+
   return (
     <FlatList
       data={products}
-      renderItem={({ item }) => <ProductCard product={item} />}
-      keyExtractor={item => item.id}
+      renderItem={renderProduct}
+      keyExtractor={(item) => item.id}
       horizontal
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.listContainer}
@@ -107,13 +119,8 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 16,
     fontWeight: 'medium',
-    fontFamily : 'Montserrat Regular',
+    fontFamily: 'Montserrat Regular',
     color: '#2C3E50',
-  },
-  localName: {
-    fontSize: 14,
-    color: '#7F8C8D',
-    marginBottom: 4,
   },
   weight: {
     fontSize: 14,
@@ -137,8 +144,8 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   addButton: {
-    borderColor : '#2ECC71',
-    borderWidth : 1,
+    borderColor: '#2ECC71',
+    borderWidth: 1,
     backgroundColor: 'white',
     paddingHorizontal: 12,
     paddingVertical: 6,

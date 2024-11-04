@@ -14,7 +14,10 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import axios from 'axios';
 import ShopHeading from './ShopHeading';
 import PeriodTracker from './periodtracker';
+import { useUser } from './context/UserContext';
 import HorizontalProductList from './HorizontalProductList';
+import { useNavigation } from '@react-navigation/native';
+
 const banners = [
   { uri: 'https://via.placeholder.com/500x200.png?text=Slide+1' },
   { uri: 'https://via.placeholder.com/500x200.png?text=Slide+2' },
@@ -35,6 +38,9 @@ const promotionalMessages = [
 ];
 
 const HomeScreen = () => {
+  const navigation = useNavigation();
+  const { userData } = useUser();
+
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]); // State to store products from backend
@@ -102,72 +108,50 @@ const HomeScreen = () => {
     </View>
   );
 
-  const renderHeader = () => (
+  const renderHeader = ({}) => (
     <>
       <View style={styles.header}>
         <View>
           <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>Jimmy Sullivan</Text>
+          <Text style={styles.userName}>{userData.name}</Text>
         </View>
-        <TouchableOpacity style={styles.profileIcon} onPress={() => setModalVisible(true)}>
+        <TouchableOpacity style={styles.profileIcon} onPress={() => navigation.navigate('ProfileManagement')}>
           <Icon name="person-outline" size={24} color="#FF3366" />
         </TouchableOpacity>
-        {/* Profile Management Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={styles.modalBackground}>
-            <View style={styles.modalContainer}>
-              <Text style={styles.modalTitle}>User Profile</Text>
-              <View style={styles.profileInfo}>
-                <Image source={require('../assets/15.png')} style={styles.profileImage} />
-                <Text style={styles.profileName}>Jimmy Sullivan</Text>
-                <Text style={styles.profileEmail}>jimmy.sullivan@example.com</Text>
-              </View>
-              <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
+        
         {/* Search Bar */}
-          <View style={styles.searchContainer}>
-            <Icon name="search-outline" size={20} color="#8E8D8A" style={styles.searchIcon} />
-            <TextInput
-              style={[styles.searchInput, isFocused && styles.searchInputFocused]}
-              placeholder="Search for products or services"
-              placeholderTextColor="#8E8D8A"
-              onFocus={() => setIsFocused(true)}
-              onBlur={() => setIsFocused(false)}
-            />
-          </View>
-              </View>
-              
-              {/* Promotional Message Section */}
+        <View style={styles.searchContainer}>
+          <Icon name="search-outline" size={20} color="#8E8D8A" style={styles.searchIcon} />
+          <TextInput
+            style={[styles.searchInput, isFocused && styles.searchInputFocused]}
+            placeholder="Search for products or services"
+            placeholderTextColor="#8E8D8A"
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+          />
+        </View>
+      </View>
+      
+      {/* Promotional Message Section */}
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-  <PeriodTracker />
-</View>
+        <PeriodTracker />
+      </View>
 
+      {/* Product section starts here */}
+      <View>
+        <ShopHeading title="FOR YOU" />
+      </View>
 
-{/* Product section starts here */}
-<View>
-<ShopHeading title="FOR YOU" />
-</View>
-
-<Text style = {styles.header}>Period Pals</Text>
-<View>
-  <HorizontalProductList/>
-</View>
-<Text style = {styles.header}>Try Something New</Text>
-<HorizontalProductList/>
-<Text style = {styles.header}>Self Care</Text>
-<HorizontalProductList/>
-<Text style = {styles.header}>Snacks</Text>
-<HorizontalProductList/>
+      <Text style={styles.header}>Period Pals</Text>
+      <View>
+        <HorizontalProductList />
+      </View>
+      <Text style={styles.header}>Try Something New</Text>
+      <HorizontalProductList />
+      <Text style={styles.header}>Self Care</Text>
+      <HorizontalProductList />
+      <Text style={styles.header}>Snacks</Text>
+      <HorizontalProductList />
     </>
   );
 
@@ -189,7 +173,7 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#f1efe6', // Soft pastel background
+    backgroundColor: '#FFF5F7', // Soft pastel background
   },
   container: {
     paddingHorizontal: 16,
@@ -200,6 +184,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     marginTop: 25,
     fontWeight : 'bold',
+  color:'grey',
     fontSize : '18',
     marginBottom: 10,
     

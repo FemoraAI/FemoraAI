@@ -1,25 +1,34 @@
 import React from 'react';
-import { View, Text, StyleSheet,Image } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-
+import { View, Text, StyleSheet,Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { useUser } from './context/UserContext';
 const PeriodTracker = () => {
-return (
+  const navigation  = useNavigation(); 
+  const { 
+    getPeriodStatus, 
+    getActiveDatesForMonth 
+  } = useUser();
+  const status = getPeriodStatus();
+
+  return (
+  <TouchableOpacity onPress={() => navigation.navigate('PeriodTracker')} >
     <View style={styles.container}>
         <View style={styles.textContainer}>
-            <Text style={styles.periodText}>Period starts in.</Text>
-            <Text style={styles.daysText}>4 Day</Text>
+            <Text style={styles.periodText}>{status.message}</Text>
+            <Text style={styles.daysText}>{status.daysCount}</Text>
             <Text style={styles.chanceText}>Click To Discover More About Your Cycle</Text>
         </View>
         <View>
             <Image source={require('../assets/calendar.png')} style={{ width: 100, height: 100 }} />
         </View>
     </View>
+  </TouchableOpacity>
 );
 };
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#6244fe',
+    backgroundColor: '#E91E63', // Lighter shade of pink
     borderRadius: 20,
     padding: 20,
     flexDirection: 'row',
@@ -38,7 +47,7 @@ const styles = StyleSheet.create({
   },
   daysText: {
     color: 'white',
-    fontSize: 28,
+    fontSize: 35,
     fontWeight: 'bold',
     marginVertical: 5,
   },
