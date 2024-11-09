@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import SubscriptionModal from './SubscriptionModal'; // Added import for SubscriptionModal
 import { useCart } from './context/CartContext';
 import { useUser } from './context/UserContext'; // Added import for user context
 
@@ -157,6 +158,7 @@ const CartScreen = () => {
   const { cartItems, updateQuantity, removeFromCart } = useCart();
   const { userDetails } = useUser(); // Get user details from context
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isSubscriptionModalVisible, setIsSubscriptionModalVisible] = useState(false);
 
   const handleQuantityChange = useCallback((id, type) => {
     updateQuantity(id, type);
@@ -199,13 +201,22 @@ const CartScreen = () => {
         <View style={styles.totalContainer}>
           <Text style={styles.totalText}>Total: ₹{totalAmount}</Text>
           <TouchableOpacity 
-            style={styles.checkoutButton}
-            onPress={() => setIsModalVisible(true)}
-          >
-            <Text style={styles.buttonText}>Proceed to Checkout</Text>
-          </TouchableOpacity>
+  style={styles.checkoutButton}
+  onPress={() => setIsSubscriptionModalVisible(true)}
+>
+  <Text style={styles.buttonText}>Proceed to Checkout</Text>
+</TouchableOpacity>
         </View>
-
+        <SubscriptionModal
+  visible={isSubscriptionModalVisible}
+  onClose={() => setIsSubscriptionModalVisible(false)}
+  onSubscribe={() => {
+    setIsSubscriptionModalVisible(false);
+    // Here you can add logic to handle the subscription
+    // For now, we'll just open the checkout modal
+    setIsModalVisible(true);
+  }}
+/>
         <CheckoutModal
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
