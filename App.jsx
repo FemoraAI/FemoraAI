@@ -119,13 +119,13 @@ const AppContent = () => {
       <NavigationContainer>
         {!userData.isLoggedIn ? (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Onboarding" component={OnboardingScreens} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreens} />
             <Stack.Screen name="Login" component={LoginScreen} />
           </Stack.Navigator>
         ) : (
           <MainNavigator />
         )}
-      </NavigationContainer>
+      </NavigationContainer>  
     </CartProvider>
   );
 };
