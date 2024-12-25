@@ -23,21 +23,21 @@ export const CartProvider = ({ children }) => {
     setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId));
   }, []);
 
-  const updateQuantity = useCallback((productId, type) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === productId
-          ? {
-              ...item,
-              quantity: type === 'increase'
-                ? item.quantity + 1
-                : Math.max(1, item.quantity - 1)
-            }
-          : item
-      )
-    );
-  }, []);
-
+  const updateQuantity = (id, action) => {
+    setCartItems(prevItems => {
+      if (action === 'remove') {
+        return prevItems.filter(item => item.id !== id);
+      }
+      
+      return prevItems.map(item => {
+        if (item.id === id) {
+          const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
+          return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
+        }
+        return item;
+      }).filter(Boolean); // Remove any null items
+    });
+  };
   return (
     <CartContext.Provider 
       value={{
