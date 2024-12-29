@@ -11,25 +11,41 @@ import {
   Keyboard,
   TouchableWithoutFeedback
 } from 'react-native';
+import { firebaseConfig } from '../firebase.config';  // Add this import
+
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
 import { useUser} from './context/UserContext';
+import {auth} from '../firebase.config';
+import { signInWithPhoneNumber, signInWithCredential,PhoneAuthProvider} from 'firebase/auth';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 const LoginScreen = () => {
+  const recaptchaVerifier = React.useRef(null);
+
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const { userData, updateUserData } = useUser();
+  const [verificationId, setVerificationId] = useState(''); // This is correct
 
-
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
       setError('Please enter a valid 10-digit phone number');
       return;
     }
-    setOtpSent(true);
-    setError('');
+
+    try {
+      const formattedPhone = `+91${phoneNumber}`;
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
+      setVerificationId(confirmationResult.verificationId);
+      setOtpSent(true);
+      setError('');
+    } catch (error) {
+      setError('Failed to send OTP. Please try again.');
+      console.error('Send OTP error:', error);
+    }
   };
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
@@ -38,7 +54,9 @@ const LoginScreen = () => {
     }
 
     try {
-      // Update user data with new phone and login status
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      await signInWithCredential(auth, credential);
+      
       updateUserData({
         phone: phoneNumber,
         isLoggedIn: true
@@ -47,12 +65,18 @@ const LoginScreen = () => {
       setError('');
       console.log('OTP verified and user logged in successfully');
     } catch (error) {
-      setError('Failed to verify OTP. Please try again.');
-      console.error('Login error:', error);
+      setError('Invalid OTP. Please try again.');
+      console.error('Verification error:', error);
     }
   };
   return (
     <SafeAreaView style={styles.container}>
+     <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+      />
+
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
