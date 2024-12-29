@@ -9,7 +9,7 @@ import { getFirestore } from "firebase/firestore";
 
 // Initialize Firebase
 export const firebaseConfig = {
-    apiKey: "AIzaSyCHhYGjCctatNzwlNK49Uc7-hMaZcSExyE",
+    apiKey: "apikey",
     authDomain: "femora-7bf54.firebaseapp.com",
     projectId: "femora-7bf54",
     storageBucket: "femora-7bf54.firebasestorage.app",
