@@ -1,3 +1,4 @@
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { 
   View, 
@@ -11,11 +12,11 @@ import {
   Keyboard,
   TouchableWithoutFeedback
 } from 'react-native';
-import { firebaseConfig } from '../firebase.config';  // Add this import
 
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
 import { useUser} from './context/UserContext';
-import {auth} from '../firebase.config';
+import { app, auth, firebaseConfig,db } from '../firebase.config';
+
 import { signInWithPhoneNumber, signInWithCredential,PhoneAuthProvider} from 'firebase/auth';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
@@ -55,20 +56,36 @@ const LoginScreen = () => {
 
     try {
       const credential = PhoneAuthProvider.credential(verificationId, otp);
-      await signInWithCredential(auth, credential);
+      const userCredential = await signInWithCredential(auth, credential);
       
-      updateUserData({
-        phone: phoneNumber,
-        isLoggedIn: true
-      });
+      // Check if user exists in Firestore
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('uid', '==', userCredential.user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        // User not found in Firestore, redirect to onboarding
+        updateUserData({
+          phone: phoneNumber,
+          isLoggedIn: true,
+          needsOnboarding: true
+        });
+      } else {
+        // User exists, proceed to home
+        updateUserData({
+          phone: phoneNumber,
+          isLoggedIn: true,
+          needsOnboarding: false
+        });
+      }
       
       setError('');
-      console.log('OTP verified and user logged in successfully');
+
     } catch (error) {
       setError('Invalid OTP. Please try again.');
       console.error('Verification error:', error);
     }
-  };
+};
   return (
     <SafeAreaView style={styles.container}>
      <FirebaseRecaptchaVerifierModal

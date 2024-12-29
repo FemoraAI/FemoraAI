@@ -119,9 +119,11 @@ const AppContent = () => {
       <NavigationContainer>
         {!userData.isLoggedIn ? (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="Login" component={LoginScreen} />
-
-          <Stack.Screen name="Onboarding" component={OnboardingScreens} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </Stack.Navigator>
+        ) : userData.needsOnboarding ? (
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="Onboarding" component={OnboardingScreens} />
           </Stack.Navigator>
         ) : (
           <MainNavigator />
@@ -129,6 +131,8 @@ const AppContent = () => {
       </NavigationContainer>  
     </CartProvider>
   );
+  
+  
 };
 
 // Main App Component

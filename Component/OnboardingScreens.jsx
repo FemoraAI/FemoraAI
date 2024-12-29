@@ -106,7 +106,7 @@ const OnboardingScreen = ({ navigation }) => {
         // render the TabNavigator with HomeStack as the initial route
         navigation.reset({
           index: 0,
-          routes: [{ name: 'Home' }],
+          routes: [{ name: "MainTabs" }],
         });
       } catch (error) {
         Alert.alert('Error', 'Failed to save your information. Please try again.');

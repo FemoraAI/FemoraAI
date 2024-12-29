@@ -1,7 +1,10 @@
 import React, { createContext, useState, useContext } from 'react';
 import moment from 'moment';
-
+import { getFirestore, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import {db,auth} from '../../firebase.config'
 const UserContext = createContext();
+
 
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
@@ -11,15 +14,17 @@ export const UserProvider = ({ children }) => {
     phone: '',
     address: 'Hostel 34, Stanford Ave, California',
     profileImage: null,
+    uid: null,
 
     // Period tracking data
     lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
-    periodDays: '5', // Default period duration
-    cycleDays: '28', // Default cycle length
+    periodDays: '5', 
+    cycleDays: '28', 
     isLoggedIn: false,
+    needsOnboarding: false
   });
+
   const login = async () => {
-    // Update login state
     setUserData(prev => ({
       ...prev,
       isLoggedIn: true
@@ -29,9 +34,9 @@ export const UserProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to save login state', error);
     }
-  }; // Logout method
+  };
+
   const logout = async () => {
-    // Update login state
     setUserData(prev => ({
       ...prev,
       isLoggedIn: false
@@ -56,17 +61,15 @@ export const UserProvider = ({ children }) => {
       console.error('Failed to check login status', error);
     }
   };
-  const updateUserData = (newData) => {
-    // If there's a new lastPeriodStart date, update it
+
+  const updateUserData = async (newData) => {
     if (newData.lastPeriodStart) {
-      // Validate the date format
       if (!moment(newData.lastPeriodStart, 'YYYY-MM-DD').isValid()) {
         console.error('Invalid date format for lastPeriodStart');
         return;
       }
     }
 
-    // If there's new period duration, validate it
     if (newData.periodDays) {
       const days = parseInt(newData.periodDays);
       if (isNaN(days) || days < 1 || days > 10) {
@@ -74,15 +77,15 @@ export const UserProvider = ({ children }) => {
         return;
       }
     }
+
     if (newData.phone) {
-      const phoneRegex = /^[0-9]{10}$/; // Example regex for a 10-digit phone number
+      const phoneRegex = /^[0-9]{10}$/;
       if (!phoneRegex.test(newData.phone)) {
         console.error('Invalid phone number format');
         return;
       }
     }
 
-    // If there's new cycle length, validate it
     if (newData.cycleDays) {
       const days = parseInt(newData.cycleDays);
       if (isNaN(days) || days < 21 || days > 35) {
@@ -91,20 +94,32 @@ export const UserProvider = ({ children }) => {
       }
     }
 
-    setUserData(prevData => ({
-      ...prevData,
-      ...newData
-    }));
+    setUserData(prevData => {
+      const updatedData = {
+        ...prevData,
+        ...newData
+      };
+
+      if (updatedData.isLoggedIn && updatedData.uid) {
+        const userRef = doc(db, 'users', updatedData.uid);
+        const firestoreData = {...updatedData};
+        delete firestoreData.isLoggedIn;
+        delete firestoreData.needsOnboarding;
+
+        updateDoc(userRef, firestoreData)
+          .catch(error => console.error('Error updating Firestore:', error));
+      }
+
+      return updatedData;
+    });
   };
 
-  // Calculate next period date based on last period and cycle length
   const getNextPeriodDate = () => {
     const lastPeriod = moment(userData.lastPeriodStart);
     const cycleLength = parseInt(userData.cycleDays) || 28;
     return lastPeriod.add(cycleLength, 'days').format('YYYY-MM-DD');
   };
 
-  // Calculate fertility window (typically 12-16 days before next period)
   const getFertilityWindow = () => {
     const nextPeriod = moment(getNextPeriodDate());
     const fertileStart = moment(nextPeriod).subtract(16, 'days');
@@ -116,7 +131,6 @@ export const UserProvider = ({ children }) => {
     };
   };
 
-  // Calculate if currently in period
   const isInPeriod = () => {
     const today = moment();
     const periodStart = moment(userData.lastPeriodStart);
@@ -125,7 +139,6 @@ export const UserProvider = ({ children }) => {
     return today.isBetween(periodStart, periodEnd, 'day', '[]');
   };
 
-  // Calculate period status with days count and message
   const getPeriodStatus = () => {
     const today = moment();
     const lastPeriodStart = moment(userData.lastPeriodStart);
@@ -153,7 +166,6 @@ export const UserProvider = ({ children }) => {
     };
   };
 
-  // Calculate active dates for a given month
   const getActiveDatesForMonth = (month) => {
     const activeDates = [];
     const lastPeriodStart = moment(userData.lastPeriodStart);
@@ -161,13 +173,10 @@ export const UserProvider = ({ children }) => {
     const periodLength = parseInt(userData.periodDays) || 5;
     let currentCycleStart = moment(lastPeriodStart);
     
-    // Go back a few cycles to ensure we catch dates in the selected month
     currentCycleStart.subtract(2, 'months');
     
-    // Calculate for next 6 months to ensure coverage
     while (currentCycleStart.isBefore(moment().add(6, 'months'))) {
       if (currentCycleStart.isSame(month, 'month')) {
-        // Add period dates
         for (let i = 0; i < periodLength; i++) {
           const periodDate = moment(currentCycleStart).add(i, 'days');
           if (periodDate.isSame(month, 'month')) {
@@ -178,12 +187,10 @@ export const UserProvider = ({ children }) => {
           }
         }
         
-        // Calculate fertility window
         const nextPeriodStart = moment(currentCycleStart).add(cycleLength, 'days');
         const fertileStart = moment(nextPeriodStart).subtract(16, 'days');
         const fertileEnd = moment(nextPeriodStart).subtract(12, 'days');
         
-        // Add fertility window dates
         if (fertileStart.isSame(month, 'month') || fertileEnd.isSame(month, 'month')) {
           for (let date = moment(fertileStart); date.isSameOrBefore(fertileEnd); date.add(1, 'day')) {
             if (date.isSame(month, 'month')) {
