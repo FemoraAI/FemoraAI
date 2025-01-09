@@ -11,11 +11,13 @@ import {
   StatusBar,
   Platform,
   KeyboardAvoidingView,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useUser } from './context/UserContext';
+import { useUser,logout } from './context/UserContext';
 import moment from 'moment';
+import { getAuth, signOut } from 'firebase/auth';
 
 const ProfileManagementScreen = ({ navigation }) => {
   const { userData, updateUserData } = useUser();
@@ -44,6 +46,18 @@ const ProfileManagementScreen = ({ navigation }) => {
 
   const toggleEdit = (field) => {
     setEditingField(editingField === field ? null : field);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      // Call the logout function from context to update state
+      logout();
+      
+    } catch (error) {
+      Alert.alert('Logout Error', ''+error);
+    }
   };
 
   const renderDetailItem = (label, value, field) => (
@@ -157,6 +171,12 @@ const ProfileManagementScreen = ({ navigation }) => {
             />
           </View>
         );
+      case 'logout':
+        return (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        );
       default:
         return null;
     }
@@ -190,6 +210,7 @@ const ProfileManagementScreen = ({ navigation }) => {
             { key: 'details', type: 'details' },
             { key: 'period', type: 'period' },
             { key: 'orders', type: 'orders' },
+            { key: 'logout', type: 'logout' },
           ]}
           renderItem={renderContent}
           keyExtractor={item => item.key}
@@ -363,6 +384,19 @@ const styles = StyleSheet.create({
     color: '#8F90A6',
     textAlign: 'center',
     marginTop: 16,
+  },
+  logoutButton: {
+    backgroundColor: '#E91E63',
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

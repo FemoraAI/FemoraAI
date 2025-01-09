@@ -16,6 +16,7 @@ import {
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
 import { useUser} from './context/UserContext';
 import { app, auth, firebaseConfig,db } from '../firebase.config';
+import { CommonActions } from '@react-navigation/native';
 
 import { signInWithPhoneNumber, signInWithCredential,PhoneAuthProvider} from 'firebase/auth';
 import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
@@ -38,7 +39,7 @@ const LoginScreen = () => {
     }
 
     try {
-      const formattedPhone = `+91${phoneNumber}`;
+      const formattedPhone = `+1${phoneNumber}`;
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
@@ -65,18 +66,54 @@ const LoginScreen = () => {
       
       if (querySnapshot.empty) {
         // User not found in Firestore, redirect to onboarding
-        updateUserData({
+        await updateUserData({
           phone: phoneNumber,
           isLoggedIn: true,
           needsOnboarding: true
         });
+        
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  routes: [
+                    {
+                      name: 'Onboarding'
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        );
       } else {
         // User exists, proceed to home
-        updateUserData({
+        await updateUserData({
           phone: phoneNumber,
           isLoggedIn: true,
           needsOnboarding: false
         });
+        
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  routes: [
+                    {
+                      name: 'TabNavigator'
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        );
       }
       
       setError('');
@@ -85,7 +122,7 @@ const LoginScreen = () => {
       setError('Invalid OTP. Please try again.');
       console.error('Verification error:', error);
     }
-};
+  };
   return (
     <SafeAreaView style={styles.container}>
      <FirebaseRecaptchaVerifierModal

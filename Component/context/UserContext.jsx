@@ -1,118 +1,126 @@
 import React, { createContext, useState, useContext } from 'react';
 import moment from 'moment';
-import { getFirestore, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
-import {db,auth} from '../../firebase.config'
+import { db, auth } from '../../firebase.config';
 const UserContext = createContext();
-
-
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
-    // Basic user information
-    name: 'Ramanjit',
-    email: 'jimmy.sullivan@example.com',
+    // User Profile Data
+    name: '',
+    email: '',
     phone: '',
-    address: 'Hostel 34, Stanford Ave, California',
+    address: '',
     profileImage: null,
     uid: null,
 
-    // Period tracking data
-    lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
-    periodDays: '5', 
-    cycleDays: '28', 
+    // Period Tracking Data
+    lastPeriodStart: moment().format('YYYY-MM-DD'),
+    periodDays: '5',
+    cycleDays: '28',
+
+    // App State
     isLoggedIn: false,
-    needsOnboarding: false
+    needsOnboarding: true,
+    
+    // Metadata
+    createdAt: null,
+    lastUpdated: null,
+    onboardingCompleted: false
   });
-
-  const login = async () => {
-    setUserData(prev => ({
-      ...prev,
-      isLoggedIn: true
-    }));
+const login = async () => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  
+  if (currentUser) {
     try {
-      await AsyncStorage.setItem('isLoggedIn', 'true');
-    } catch (error) {
-      console.error('Failed to save login state', error);
-    }
-  };
-
-  const logout = async () => {
-    setUserData(prev => ({
-      ...prev,
-      isLoggedIn: false
-    }));
-    try {
-      await AsyncStorage.removeItem('isLoggedIn');
-    } catch (error) {
-      console.error('Failed to remove login state', error);
-    }
-  };
-
-  const checkLoginStatus = async () => {
-    try {
-      const loggedIn = await AsyncStorage.getItem('isLoggedIn');
-      if (loggedIn === 'true') {
-        setUserData(prev => ({
-          ...prev,
-          isLoggedIn: true
-        }));
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        setUserData({
+          ...userDoc.data(),
+          isLoggedIn: true,
+          needsOnboarding: false
+        });
+       
+      } else {
+        setUserData({
+          uid: currentUser.uid,
+          isLoggedIn: true,
+          needsOnboarding: true
+        });
       }
     } catch (error) {
-      console.error('Failed to check login status', error);
+      console.error('Error in login:', error);
     }
-  };
+  }
+};
 
+
+ 
+  const logout = () => {
+    setUserData(prev => ({
+      ...prev,
+      isLoggedIn: false,
+      uid: null,
+      needsOnboarding: true
+    }));
+  };
   const updateUserData = async (newData) => {
-    if (newData.lastPeriodStart) {
-      if (!moment(newData.lastPeriodStart, 'YYYY-MM-DD').isValid()) {
-        console.error('Invalid date format for lastPeriodStart');
-        return;
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+  
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
       }
-    }
-
-    if (newData.periodDays) {
-      const days = parseInt(newData.periodDays);
-      if (isNaN(days) || days < 1 || days > 10) {
-        console.error('Invalid period duration');
-        return;
-      }
-    }
-
-    if (newData.phone) {
-      const phoneRegex = /^[0-9]{10}$/;
-      if (!phoneRegex.test(newData.phone)) {
-        console.error('Invalid phone number format');
-        return;
-      }
-    }
-
-    if (newData.cycleDays) {
-      const days = parseInt(newData.cycleDays);
-      if (isNaN(days) || days < 21 || days > 35) {
-        console.error('Invalid cycle length');
-        return;
-      }
-    }
-
-    setUserData(prevData => {
-      const updatedData = {
-        ...prevData,
+  
+      const timestamp = new Date().toISOString();
+      const userRef = doc(db, 'users', currentUser.uid);
+  
+      // Prepare the complete user data for Firestore
+      const firestoreData = {
+        // User Profile
+        uid: currentUser.uid,
+        email: currentUser.email,
+        name: newData.name || userData.name,
+        phone: newData.phone || userData.phone,
+        address: newData.address || userData.address,
+        profileImage: newData.profileImage || userData.profileImage,
+  
+        // Period Tracking
+        lastPeriodStart: newData.lastPeriodStart || userData.lastPeriodStart,
+        periodDays: newData.periodDays || userData.periodDays,
+        cycleDays: newData.cycleDays || userData.cycleDays,
+  
+        // Metadata
+        lastUpdated: timestamp,
+        createdAt: userData.createdAt || timestamp,
+        onboardingCompleted: true,
+  
+        // Additional tracking data if provided
         ...newData
       };
-
-      if (updatedData.isLoggedIn && updatedData.uid) {
-        const userRef = doc(db, 'users', updatedData.uid);
-        const firestoreData = {...updatedData};
-        delete firestoreData.isLoggedIn;
-        delete firestoreData.needsOnboarding;
-
-        updateDoc(userRef, firestoreData)
-          .catch(error => console.error('Error updating Firestore:', error));
-      }
-
-      return updatedData;
-    });
+  
+      // Remove any client-only fields before saving to Firestore
+      const { isLoggedIn, needsOnboarding, ...firestoreDataWithoutClientFields } = firestoreData;
+  
+      // Update Firestore
+      await setDoc(userRef, firestoreDataWithoutClientFields, { merge: true });
+  
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        ...firestoreData,
+        isLoggedIn: true,
+        needsOnboarding: false
+      }));
+  
+    } catch (error) {
+      console.error('Error updating user data:', error);
+      throw error;
+    }
   };
+
 
   const getNextPeriodDate = () => {
     const lastPeriod = moment(userData.lastPeriodStart);
@@ -218,7 +226,6 @@ export const UserProvider = ({ children }) => {
         isInPeriod,
         getPeriodStatus,
         getActiveDatesForMonth,
-        checkLoginStatus,
         login,
         logout,
       }}

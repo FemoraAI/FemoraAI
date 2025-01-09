@@ -1,10 +1,12 @@
 import './gesture-handler';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 // Screen Imports
 import HeaderScreen from './Component/HomeScreen';
@@ -24,6 +26,14 @@ import { CartProvider } from './Component/context/CartContext';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const RootStack = createStackNavigator();
+
+// Loading Screen Component
+const LoadingScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color="#E91E63" />
+  </View>
+);
 
 // Home Stack Navigator
 const HomeStack = () => {
@@ -47,16 +57,6 @@ const DoctorsStack = () => {
       <Stack.Screen name="AppointmentSchedule" component={AppointmentSchedulePage} />
       <Stack.Screen name="pres" component={PrescriptionPage} />
       <Stack.Screen name="list" component={DoctorPage} />
-    </Stack.Navigator>
-  );
-};
-
-// Main Navigation Stack
-const MainNavigator = () => {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="MainTabs" component={TabNavigator} />
-      <Stack.Screen name="Login" component={LoginScreen} />
     </Stack.Navigator>
   );
 };
@@ -106,41 +106,66 @@ const TabNavigator = () => {
   );
 };
 
-// App Content Component
-const AppContent = () => {
-  const { userData, checkLoginStatus } = useUser();
-
-  useEffect(() => {
-    checkLoginStatus();
-  }, []);
-
-  return (
-    <CartProvider>
-      <NavigationContainer>
-        {!userData.isLoggedIn ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Login" component={LoginScreen} />
-          </Stack.Navigator>
-        ) : userData.needsOnboarding ? (
-          <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Onboarding" component={OnboardingScreens} />
-          </Stack.Navigator>
-        ) : (
-          <MainNavigator />
-        )}
-      </NavigationContainer>  
-    </CartProvider>
-  );
-  
-  
-};
-
 // Main App Component
 const App = () => {
   return (
     <UserProvider>
-      <AppContent />
+      <CartProvider>
+        <NavigationContainer>
+          <RootStack.Navigator screenOptions={{ headerShown: false }}>
+            <RootStack.Screen name="Main" component={AuthNavigator} />
+          </RootStack.Navigator>
+        </NavigationContainer>
+      </CartProvider>
     </UserProvider>
+  );
+};
+
+// Auth Navigator Component
+const AuthNavigator = () => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  
+  useEffect(() => {
+    const auth = getAuth();
+    const db = getFirestore();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          setIsAuthenticated(true);
+          setNeedsOnboarding(!userDoc.exists());
+        } catch (error) {
+          console.error('Error checking user document:', error);
+          setIsAuthenticated(false);
+          setNeedsOnboarding(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+        setNeedsOnboarding(false);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      ) : needsOnboarding ? (
+        <Stack.Screen name="Onboarding" component={OnboardingScreens} />
+      ) : (
+        <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      )}
+    </Stack.Navigator>
   );
 };
 
