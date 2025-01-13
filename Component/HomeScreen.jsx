@@ -17,13 +17,6 @@ import PeriodTracker from './periodtracker';
 import { useUser } from './context/UserContext';
 import HorizontalProductList from './HorizontalProductList';
 import { useNavigation } from '@react-navigation/native';
-
-const banners = [
-  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+1' },
-  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+2' },
-  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+3' },
-  { uri: 'https://via.placeholder.com/500x200.png?text=Slide+4' },
-];
 const promotionalMessages = [
   {
     title: 'TRACK YOUR CYCLE!',
@@ -144,14 +137,18 @@ const HomeScreen = () => {
 
       <Text style={styles.header}>Period Pals</Text>
       <View>
-        <HorizontalProductList />
+      <HorizontalProductList category="pads" />
       </View>
       <Text style={styles.header}>Try Something New</Text>
-      <HorizontalProductList />
+      <View>  
+      <HorizontalProductList category="tamp" />
+      </View>
       <Text style={styles.header}>Self Care</Text>
-      <HorizontalProductList />
+      <HorizontalProductList category="snacks" />
+
       <Text style={styles.header}>Snacks</Text>
-      <HorizontalProductList />
+      <HorizontalProductList category="Pads" />
+
     </>
   );
 

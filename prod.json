@@ -1,0 +1,184 @@
+{
+  "products": {
+    "product1": {
+      "id": "1",
+      "name": "Whisper Ultra Soft Sanitary Pads",
+      "category": "pads",
+      "price": 41,
+      "originalPrice": 52,
+      "pcs": 30,
+      "image": "https://m.media-amazon.com/images/I/61rffJJbRML._AC_SL1500_.jpg"
+    },
+    "product2": {
+      "id": "2",
+      "name": "Stayfree Ultra Thin Sanitary Pads",
+      "category": "pads",
+      "price": 40,
+      "originalPrice": 50,
+      "pcs": 20,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product3": {
+      "id": "3",
+      "name": "Sofy Antibacterial Sanitary Pads",
+      "category": "pads",
+      "price": 45,
+      "originalPrice": 55,
+      "pcs": 25,
+      "image": "https://m.media-amazon.com/images/I/71yJZ8ZQZaL._SL1500_.jpg"
+    },
+    "product4": {
+      "id": "4",
+      "name": "Carmesi Bamboo Sanitary Pads",
+      "category": "pads",
+      "price": 50,
+      "originalPrice": 60,
+      "pcs": 10,
+      "image": "https://m.media-amazon.com/images/I/61zZQZQZQZL._SL1500_.jpg"
+    },
+    "product5": {
+      "id": "5",
+      "name": "Saathi Eco-Friendly Sanitary Pads",
+      "category": "pads",
+      "price": 55,
+      "originalPrice": 65,
+      "pcs": 8,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product6": {
+      "id": "6",
+      "name": "Sirona Period Made Easy Tampons",
+      "category": "tampons",
+      "price": 249,
+      "originalPrice": 329,
+      "pcs": 20,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product7": {
+      "id": "7",
+      "name": "Stayfree Tampons by OB",
+      "category": "tampons",
+      "price": 130,
+      "originalPrice": 150,
+      "pcs": 10,
+      "image": "https://m.media-amazon.com/images/I/61rffJJbRML._SL1500_.jpg"
+    },
+    "product8": {
+      "id": "8",
+      "name": "Pee Safe Organic Cotton Tampons",
+      "category": "tampons",
+      "price": 200,
+      "originalPrice": 279,
+      "pcs": 16,
+      "image": "https://m.media-amazon.com/images/I/71yJZ8ZQZaL._SL1500_.jpg"
+    },
+    "product9": {
+      "id": "9",
+      "name": "O.B. ProComfort Tampons",
+      "category": "tampons",
+      "price": 298,
+      "originalPrice": 299,
+      "pcs": 20,
+      "image": "https://m.media-amazon.com/images/I/61zZQZQZQZL._SL1500_.jpg"
+    },
+    "product10": {
+      "id": "10",
+      "name": "Sofy Soft Tampons",
+      "category": "tampons",
+      "price": 559,
+      "originalPrice": 593,
+      "pcs": 34,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product11": {
+      "id": "11",
+      "name": "Lays Classic Salted Potato Chips",
+      "category": "snacks",
+      "price": 20,
+      "originalPrice": 25,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product12": {
+      "id": "12",
+      "name": "Parle-G Glucose Biscuits",
+      "category": "snacks",
+      "price": 100,
+      "originalPrice": 120,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/61rffJJbRML._SL1500_.jpg"
+    },
+    "product13": {
+      "id": "13",
+      "name": "Britannia Marie Gold Biscuits",
+      "category": "snacks",
+      "price": 50,
+      "originalPrice": 60,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71yJZ8ZQZaL._SL1500_.jpg"
+    },
+    "product14": {
+      "id": "14",
+      "name": "Kurkure Masala Munch",
+      "category": "snacks",
+      "price": 15,
+      "originalPrice": 20,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/61zZQZQZQZL._SL1500_.jpg"
+    },
+    "product15": {
+      "id": "15",
+      "name": "Amul Dark Chocolate",
+      "category": "snacks",
+      "price": 150,
+      "originalPrice": 180,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product16": {
+      "id": "16",
+      "name": "Dove Deep Moisture Body Wash",
+      "category": "selfCare",
+      "price": 399,
+      "originalPrice": 450,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    },
+    "product17": {
+      "id": "17",
+      "name": "Cetaphil Gentle Skin Cleanser",
+      "category": "selfCare",
+      "price": 599,
+      "originalPrice": 650,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/61rffJJbRML._SL1500_.jpg"
+    },
+    "product18": {
+      "id": "18",
+      "name": "The Body Shop Tea Tree Oil",
+      "category": "selfCare",
+      "price": 695,
+      "originalPrice": 750,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71yJZ8ZQZaL._SL1500_.jpg"
+    },
+    "product19": {
+      "id": "19",
+      "name": "Mamaearth Aloe Vera Gel",
+      "category": "selfCare",
+      "price": 299,
+      "originalPrice": 350,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/61zZQZQZQZL._SL1500_.jpg"
+    },
+    "product20": {
+      "id": "20",
+      "name": "Nykaa Naturals Face Mask",
+      "category": "selfCare",
+      "price": 199,
+      "originalPrice": 250,
+      "pcs": 1,
+      "image": "https://m.media-amazon.com/images/I/71Z9Qy7XfYL._SL1500_.jpg"
+    }
+  }
+}

@@ -39,7 +39,7 @@ const LoginScreen = () => {
     }
 
     try {
-      const formattedPhone = `+1${phoneNumber}`;
+      const formattedPhone = `+91${phoneNumber}`;
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);

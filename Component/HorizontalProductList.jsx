@@ -1,44 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useCart } from './context/CartContext';
-
-
-const products = [
-  {
-    id: '1',
-    name: 'Whisper Ultra Soft Sanitary Pads',
-    image:'https://m.media-amazon.com/images/I/61rffJJbRML._AC_SL1500_.jpg',
-    price: 41,
-    pcs:30,
-    originalPrice: 52,
-  },
-  {
-    id: '2',
-    name: 'Whisper Ultra Soft Sanitary Pads',
-    image: 'https://m.media-amazon.com/images/I/61rffJJbRML._AC_SL1500_.jpg',
-    price: 39,
-    pcs:30,
-    originalPrice: 62,
-  },
-  {
-    id: '3',
-    name: 'Whisper Ultra Soft Sanitary Pads',
-    image: 'https://m.media-amazon.com/images/I/61rffJJbRML._AC_SL1500_.jpg',
-    price: 39,
-    pcs : 30,
-    originalPrice: 62,
-  },
-  {
-    id: '4',
-    name: 'Whisper Ultra Soft Sanitary Pads',
-    image: 'https://m.media-amazon.com/images/I/61rffJJbRML._AC_SL1500_.jpg',
-    price: 39,
-    pcs : 30,
-    originalPrice: 62,
-  },
-  
-];
+import { db } from '../firebase.config'; // Adjust the import path
+import { collection, query, where, getDocs } from 'firebase/firestore';
 const ProductCard = ({ product }) => {
   const { cartItems, addToCart, updateQuantity } = useCart();
   const cartItem = cartItems.find((item) => item.id === product.id);
@@ -82,9 +47,45 @@ const ProductCard = ({ product }) => {
     </View>
   );
 };
+const HorizontalProductList = ({ category }) => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-const HorizontalProductList = () => {
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        // Create a Firestore query to fetch products by category
+        const productsQuery = query(
+          collection(db, 'products'), // Reference the 'products' collection
+          where('category', '==', category) // Filter by category
+        );
+
+        // Execute the query
+        const querySnapshot = await getDocs(productsQuery);
+
+        // Map the documents to an array of product objects
+        const productsData = querySnapshot.docs.map(doc => ({
+          id: doc.id, // Include the document ID
+          ...doc.data(), // Include all other fields
+        }));
+
+        // Update the state with the fetched products
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error fetching products: ', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, [category]);
+
   const renderProduct = ({ item }) => <ProductCard product={item} />;
+
+  if (loading) {
+    return <Text>Loading...</Text>;
+  }
 
   return (
     <FlatList
@@ -97,6 +98,8 @@ const HorizontalProductList = () => {
     />
   );
 };
+
+
 
 const styles = StyleSheet.create({
   listContainer: {
