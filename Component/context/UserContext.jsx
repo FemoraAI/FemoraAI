@@ -1,110 +1,133 @@
 import React, { createContext, useState, useContext } from 'react';
 import moment from 'moment';
-
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { db, auth } from '../../firebase.config';
 const UserContext = createContext();
-
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
-    // Basic user information
-    name: 'Ramanjit',
-    email: 'jimmy.sullivan@example.com',
+    // User Profile Data
+    name: '',
+    email: '',
     phone: '',
-    address: 'Hostel 34, Stanford Ave, California',
+    address: '',
     profileImage: null,
+    uid: null,
 
-    // Period tracking data
-    lastPeriodStart: moment().subtract(18, 'days').format('YYYY-MM-DD'),
-    periodDays: '5', // Default period duration
-    cycleDays: '28', // Default cycle length
+    // Period Tracking Data
+    lastPeriodStart: moment().format('YYYY-MM-DD'),
+    periodDays: '5',
+    cycleDays: '28',
+
+    // App State
     isLoggedIn: false,
+    needsOnboarding: true,
+    
+    // Metadata
+    createdAt: null,
+    lastUpdated: null,
+    onboardingCompleted: false
   });
-  const login = async () => {
-    // Update login state
+const login = async () => {
+  const auth = getAuth();
+  const currentUser = auth.currentUser;
+  
+  if (currentUser) {
+    try {
+      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      if (userDoc.exists()) {
+        setUserData({
+          ...userDoc.data(),
+          isLoggedIn: true,
+          needsOnboarding: false
+        });
+       
+      } else {
+        setUserData({
+          uid: currentUser.uid,
+          isLoggedIn: true,
+          needsOnboarding: true
+        });
+      }
+    } catch (error) {
+      console.error('Error in login:', error);
+    }
+  }
+};
+
+
+ 
+  const logout = () => {
     setUserData(prev => ({
       ...prev,
-      isLoggedIn: true
+      isLoggedIn: false,
+      uid: null,
+      needsOnboarding: true
     }));
+  };
+  const updateUserData = async (newData) => {
     try {
-      await AsyncStorage.setItem('isLoggedIn', 'true');
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+  
+      if (!currentUser) {
+        throw new Error('No authenticated user found');
+      }
+  
+      const timestamp = new Date().toISOString();
+      const userRef = doc(db, 'users', currentUser.uid);
+  
+      // Prepare the complete user data for Firestore
+      const firestoreData = {
+        // User Profile
+        uid: currentUser.uid,
+        email: currentUser.email,
+        name: newData.name || userData.name,
+        phone: newData.phone || userData.phone,
+        address: newData.address || userData.address,
+        profileImage: newData.profileImage || userData.profileImage,
+  
+        // Period Tracking
+        lastPeriodStart: newData.lastPeriodStart || userData.lastPeriodStart,
+        periodDays: newData.periodDays || userData.periodDays,
+        cycleDays: newData.cycleDays || userData.cycleDays,
+  
+        // Metadata
+        lastUpdated: timestamp,
+        createdAt: userData.createdAt || timestamp,
+        onboardingCompleted: true,
+  
+        // Additional tracking data if provided
+        ...newData
+      };
+  
+      // Remove any client-only fields before saving to Firestore
+      const { isLoggedIn, needsOnboarding, ...firestoreDataWithoutClientFields } = firestoreData;
+  
+      // Update Firestore
+      await setDoc(userRef, firestoreDataWithoutClientFields, { merge: true });
+  
+      // Update local state
+      setUserData(prev => ({
+        ...prev,
+        ...firestoreData,
+        isLoggedIn: true,
+        needsOnboarding: false
+      }));
+  
     } catch (error) {
-      console.error('Failed to save login state', error);
-    }
-  }; // Logout method
-  const logout = async () => {
-    // Update login state
-    setUserData(prev => ({
-      ...prev,
-      isLoggedIn: false
-    }));
-    try {
-      await AsyncStorage.removeItem('isLoggedIn');
-    } catch (error) {
-      console.error('Failed to remove login state', error);
+      console.error('Error updating user data:', error);
+      throw error;
     }
   };
 
-  const checkLoginStatus = async () => {
-    try {
-      const loggedIn = await AsyncStorage.getItem('isLoggedIn');
-      if (loggedIn === 'true') {
-        setUserData(prev => ({
-          ...prev,
-          isLoggedIn: true
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to check login status', error);
-    }
-  };
-  const updateUserData = (newData) => {
-    // If there's a new lastPeriodStart date, update it
-    if (newData.lastPeriodStart) {
-      // Validate the date format
-      if (!moment(newData.lastPeriodStart, 'YYYY-MM-DD').isValid()) {
-        console.error('Invalid date format for lastPeriodStart');
-        return;
-      }
-    }
 
-    // If there's new period duration, validate it
-    if (newData.periodDays) {
-      const days = parseInt(newData.periodDays);
-      if (isNaN(days) || days < 1 || days > 10) {
-        console.error('Invalid period duration');
-        return;
-      }
-    }
-    if (newData.phone) {
-      const phoneRegex = /^[0-9]{10}$/; // Example regex for a 10-digit phone number
-      if (!phoneRegex.test(newData.phone)) {
-        console.error('Invalid phone number format');
-        return;
-      }
-    }
-
-    // If there's new cycle length, validate it
-    if (newData.cycleDays) {
-      const days = parseInt(newData.cycleDays);
-      if (isNaN(days) || days < 21 || days > 35) {
-        console.error('Invalid cycle length');
-        return;
-      }
-    }
-
-    setUserData(prevData => ({
-      ...prevData,
-      ...newData
-    }));
-  };
-
-  // Calculate next period date based on last period and cycle length
   const getNextPeriodDate = () => {
     const lastPeriod = moment(userData.lastPeriodStart);
     const cycleLength = parseInt(userData.cycleDays) || 28;
     return lastPeriod.add(cycleLength, 'days').format('YYYY-MM-DD');
   };
 
-  // Calculate fertility window (typically 12-16 days before next period)
   const getFertilityWindow = () => {
     const nextPeriod = moment(getNextPeriodDate());
     const fertileStart = moment(nextPeriod).subtract(16, 'days');
@@ -116,7 +139,6 @@ export const UserProvider = ({ children }) => {
     };
   };
 
-  // Calculate if currently in period
   const isInPeriod = () => {
     const today = moment();
     const periodStart = moment(userData.lastPeriodStart);
@@ -125,7 +147,6 @@ export const UserProvider = ({ children }) => {
     return today.isBetween(periodStart, periodEnd, 'day', '[]');
   };
 
-  // Calculate period status with days count and message
   const getPeriodStatus = () => {
     const today = moment();
     const lastPeriodStart = moment(userData.lastPeriodStart);
@@ -153,7 +174,6 @@ export const UserProvider = ({ children }) => {
     };
   };
 
-  // Calculate active dates for a given month
   const getActiveDatesForMonth = (month) => {
     const activeDates = [];
     const lastPeriodStart = moment(userData.lastPeriodStart);
@@ -161,13 +181,10 @@ export const UserProvider = ({ children }) => {
     const periodLength = parseInt(userData.periodDays) || 5;
     let currentCycleStart = moment(lastPeriodStart);
     
-    // Go back a few cycles to ensure we catch dates in the selected month
     currentCycleStart.subtract(2, 'months');
     
-    // Calculate for next 6 months to ensure coverage
     while (currentCycleStart.isBefore(moment().add(6, 'months'))) {
       if (currentCycleStart.isSame(month, 'month')) {
-        // Add period dates
         for (let i = 0; i < periodLength; i++) {
           const periodDate = moment(currentCycleStart).add(i, 'days');
           if (periodDate.isSame(month, 'month')) {
@@ -178,12 +195,10 @@ export const UserProvider = ({ children }) => {
           }
         }
         
-        // Calculate fertility window
         const nextPeriodStart = moment(currentCycleStart).add(cycleLength, 'days');
         const fertileStart = moment(nextPeriodStart).subtract(16, 'days');
         const fertileEnd = moment(nextPeriodStart).subtract(12, 'days');
         
-        // Add fertility window dates
         if (fertileStart.isSame(month, 'month') || fertileEnd.isSame(month, 'month')) {
           for (let date = moment(fertileStart); date.isSameOrBefore(fertileEnd); date.add(1, 'day')) {
             if (date.isSame(month, 'month')) {
@@ -211,7 +226,6 @@ export const UserProvider = ({ children }) => {
         isInPeriod,
         getPeriodStatus,
         getActiveDatesForMonth,
-        checkLoginStatus,
         login,
         logout,
       }}

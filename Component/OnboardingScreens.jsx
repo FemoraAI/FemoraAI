@@ -1,20 +1,24 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  StyleSheet, 
-  TouchableOpacity, 
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  TouchableOpacity,
   Dimensions,
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Alert
+  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { CommonActions } from '@react-navigation/native';
+
 import LottieView from 'lottie-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
+import { useNavigation } from '@react-navigation/native';
+import { getAuth } from 'firebase/auth';
 import { useUser } from './context/UserContext';
 
 // Import animations locally
@@ -27,15 +31,17 @@ const welcomeAnimation = require('./../assets/animations/welcome.json');
 
 const { width, height } = Dimensions.get('window');
 
-const OnboardingScreen = ({ navigation }) => {
-  const { updateUserData, login } = useUser();
+const OnboardingScreen = () => {
+  const navigation = useNavigation();
+
+  const { updateUserData, login,userData } = useUser();
   const [currentPage, setCurrentPage] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     address: '',
     lastPeriodStart: new Date(),
     periodDays: '6',
-    cycleDays: '28'
+    cycleDays: '28',
   });
   const [showWelcome, setShowWelcome] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -94,22 +100,77 @@ const OnboardingScreen = ({ navigation }) => {
       }, 4000);
     } else if (currentPage === 4) {
       try {
-        await updateUserData({
+        // Get current user
+        const auth = getAuth();
+        const currentUser = auth.currentUser;
+        
+        if (!currentUser) {
+          throw new Error('No authenticated user found');
+        }
+  
+        const timestamp = new Date().toISOString();
+  
+        // Prepare complete user data
+        const completeUserData = {
+          // Basic Information
           name: formData.name,
           address: formData.address,
+          email: currentUser.email,
+          uid: currentUser.uid,
+          
+          // Period Tracking Information
           lastPeriodStart: moment(formData.lastPeriodStart).format('YYYY-MM-DD'),
           periodDays: formData.periodDays,
-          cycleDays: formData.cycleDays
-        });
+          cycleDays: formData.cycleDays,
+          
+          // Metadata
+          createdAt: timestamp,
+          lastUpdated: timestamp,
+          onboardingCompleted: true,
+          
+          // Default values for optional fields
+          phone: currentUser.phoneNumber || '',
+          profileImage: null,
+        };
+  
+        // Update Firestore and local state
+        await updateUserData(completeUserData);
+        
+        // Update local user context to reflect completion of onboarding
+        const updatedUserData = {
+          ...completeUserData,
+          isLoggedIn: true,
+          needsOnboarding: false
+        };
+        
+        // Trigger a login refresh to update the user context
         await login();
-        // After successful login, the AppContent component will automatically 
-        // render the TabNavigator with HomeStack as the initial route
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Home' }],
-        });
+        
+        // Navigate to the main screen
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  routes: [
+                    {
+                      name: 'TabNavigator' // or 'Onboarding'
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        );
+        
       } catch (error) {
-        Alert.alert('Error', 'Failed to save your information. Please try again.');
+        console.error('Error in handleNext:', error);
+        Alert.alert(
+          'Error', 
+          'Failed to save your information. Please check your internet connection and try again.'
+        );
       }
     } else {
       setCurrentPage(currentPage + 1);
@@ -121,9 +182,9 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   const updateFormData = (key, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [key]: value
+      [key]: value,
     }));
   };
 
@@ -138,12 +199,18 @@ const OnboardingScreen = ({ navigation }) => {
 
   const getCurrentAnimationRef = () => {
     switch (currentPage) {
-      case 0: return nameAnimationRef;
-      case 1: return addressAnimationRef;
-      case 2: return calendarAnimationRef;
-      case 3: return durationAnimationRef;
-      case 4: return cycleAnimationRef;
-      default: return null;
+      case 0:
+        return nameAnimationRef;
+      case 1:
+        return addressAnimationRef;
+      case 2:
+        return calendarAnimationRef;
+      case 3:
+        return durationAnimationRef;
+      case 4:
+        return cycleAnimationRef;
+      default:
+        return null;
     }
   };
 
@@ -219,7 +286,7 @@ const OnboardingScreen = ({ navigation }) => {
               style={styles.animation}
             />
             <Text style={styles.question}>When did your last period start?</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.dateButton}
               onPress={() => setShowDatePicker(true)}
             >
@@ -298,8 +365,8 @@ const OnboardingScreen = ({ navigation }) => {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <StatusBar style="light" />
@@ -313,7 +380,7 @@ const OnboardingScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             {currentPage < 4 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.nextButton]}
                 onPress={handleNext}
               >
@@ -321,7 +388,7 @@ const OnboardingScreen = ({ navigation }) => {
               </TouchableOpacity>
             )}
             {currentPage === 4 && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.button, styles.finishButton]}
                 onPress={handleNext}
               >
@@ -334,124 +401,124 @@ const OnboardingScreen = ({ navigation }) => {
     </KeyboardAvoidingView>
   );
 };
+
 const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: '#FAF3FF',
+  container: {
+    flex: 1,
+    backgroundColor: '#FAF3FF',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'space-between',
+    padding: 20,
+  },
+  pageContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 0,
+  },
+  welcomeContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  animation: {
+    width: width * 0.7,
+    height: width * 0.7,
+    marginBottom: 20,
+  },
+  welcomeAnimation: {
+    width: width * 0.8,
+    height: width * 0.8,
+  },
+  welcomeText: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#7B4E93',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  question: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#7B4E93',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  subText: {
+    fontSize: 16,
+    color: '#B095C5',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  input: {
+    width: '90%',
+    padding: 15,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    fontSize: 16,
+    color: '#7B4E93',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
-    scrollContainer: {
-      flexGrow: 1,
-      justifyContent: 'space-between',
-      padding: 20,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+    marginTop: 10,
+  },
+  dateButton: {
+    width: '90%',
+    padding: 15,
+    borderRadius: 25,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
-    pageContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      paddingTop: 0,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  dateButtonText: {
+    fontSize: 16,
+    color: '#7B4E93',
+  },
+  navigation: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    backgroundColor: '#7B4E93',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
-    welcomeContainer: {
-      flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    animation: {
-      width: width * 0.7,
-      height: width * 0.7,
-      marginBottom: 20,
-    },
-    welcomeAnimation: {
-      width: width * 0.8,
-      height: width * 0.8,
-      durationAnimation : 1000,
-    },
-    welcomeText: {
-      fontSize: 40,
-      fontWeight: 'bold',
-      color: '#7B4E93',
-      textAlign: 'center',
-      marginTop: 20,
-    },
-    question: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#7B4E93',
-      textAlign: 'center',
-      marginBottom: 10,
-    },
-    subText: {
-      fontSize: 16,
-      color: '#B095C5',
-      textAlign: 'center',
-      marginBottom: 20,
-    },
-    input: {
-      width: '90%',
-      padding: 15,
-      borderRadius: 25,
-      backgroundColor: '#FFFFFF',
-      fontSize: 16,
-      color: '#7B4E93',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-      marginTop: 10,
-    },
-    dateButton: {
-      width: '90%',
-      padding: 15,
-      borderRadius: 25,
-      backgroundColor: '#FFFFFF',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.1,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    dateButtonText: {
-      fontSize: 16,
-      color: '#7B4E93',
-    },
-    navigation: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      paddingHorizontal: 20,
-      paddingBottom: 40,
-    },
-    button: {
-      paddingVertical: 12,
-      paddingHorizontal: 30,
-      borderRadius: 25,
-      backgroundColor: '#7B4E93',
-      shadowColor: '#000',
-      shadowOffset: {
-        width: 0,
-        height: 2,
-      },
-      shadowOpacity: 0.2,
-      shadowRadius: 3,
-      elevation: 3,
-    },
-    nextButton: {
-      backgroundColor: '#9B6EB7',
-    },
-    finishButton: {
-      backgroundColor: '#58B368',
-    },
-    buttonText: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '600',
-    },
-  });
-  
-  export default OnboardingScreen;
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  nextButton: {
+    backgroundColor: '#9B6EB7',
+  },
+  finishButton: {
+    backgroundColor: '#58B368',
+  },
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});
+
+export default OnboardingScreen;

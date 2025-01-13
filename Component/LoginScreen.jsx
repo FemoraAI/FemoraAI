@@ -1,3 +1,4 @@
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 import React, { useState } from 'react';
 import { 
   View, 
@@ -11,25 +12,42 @@ import {
   Keyboard,
   TouchableWithoutFeedback
 } from 'react-native';
+
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
 import { useUser} from './context/UserContext';
+import { app, auth, firebaseConfig,db } from '../firebase.config';
+import { CommonActions } from '@react-navigation/native';
+
+import { signInWithPhoneNumber, signInWithCredential,PhoneAuthProvider} from 'firebase/auth';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 const LoginScreen = () => {
+  const recaptchaVerifier = React.useRef(null);
+
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const { userData, updateUserData } = useUser();
+  const [verificationId, setVerificationId] = useState(''); // This is correct
 
-
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
       setError('Please enter a valid 10-digit phone number');
       return;
     }
-    setOtpSent(true);
-    setError('');
+
+    try {
+      const formattedPhone = `+91${phoneNumber}`;
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
+      setVerificationId(confirmationResult.verificationId);
+      setOtpSent(true);
+      setError('');
+    } catch (error) {
+      setError('Failed to send OTP. Please try again.');
+      console.error('Send OTP error:', error);
+    }
   };
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
@@ -38,21 +56,81 @@ const LoginScreen = () => {
     }
 
     try {
-      // Update user data with new phone and login status
-      updateUserData({
-        phone: phoneNumber,
-        isLoggedIn: true
-      });
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      const userCredential = await signInWithCredential(auth, credential);
+      
+      // Check if user exists in Firestore
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('uid', '==', userCredential.user.uid));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        // User not found in Firestore, redirect to onboarding
+        await updateUserData({
+          phone: phoneNumber,
+          isLoggedIn: true,
+          needsOnboarding: true
+        });
+        
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  routes: [
+                    {
+                      name: 'Onboarding'
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        );
+      } else {
+        // User exists, proceed to home
+        await updateUserData({
+          phone: phoneNumber,
+          isLoggedIn: true,
+          needsOnboarding: false
+        });
+        
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [
+              {
+                name: 'Main',
+                state: {
+                  routes: [
+                    {
+                      name: 'TabNavigator'
+                    }
+                  ]
+                }
+              }
+            ]
+          })
+        );
+      }
       
       setError('');
-      console.log('OTP verified and user logged in successfully');
+
     } catch (error) {
-      setError('Failed to verify OTP. Please try again.');
-      console.error('Login error:', error);
+      setError('Invalid OTP. Please try again.');
+      console.error('Verification error:', error);
     }
   };
   return (
     <SafeAreaView style={styles.container}>
+     <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+      />
+
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
