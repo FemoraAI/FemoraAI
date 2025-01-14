@@ -15,7 +15,10 @@ const SpecialtyItem = ({ specialty }) => {
   const navigation = useNavigation();
 
   return (
-    <TouchableOpacity onPress={() => navigation.navigate('list', { specialty: specialty.name })}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('list', { specialty: specialty.name })}
+      activeOpacity={0.7} // Add a slight opacity effect on press
+    >
       <View style={styles.specialtyItem}>
         <View style={styles.iconContainer}>{specialty.icon}</View>
         <Text style={styles.specialtyName}>{specialty.name}</Text>

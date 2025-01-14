@@ -1,216 +1,190 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, FlatList, ScrollView } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import moment from 'moment';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  Modal, 
+  TouchableOpacity, 
+  FlatList, 
+  ActivityIndicator,
+  Dimensions,
+  Animated,
+} from 'react-native';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase.config'; // Adjust the import path
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-const MeetingTimeModal = ({ visible, onClose, onSelect }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedSlot, setSelectedSlot] = useState(null);
+const { width } = Dimensions.get('window');
 
-  const getDates = () => {
-    const dates = [];
-    for (let i = 0; i < 3; i++) {
-      const date = new Date(new Date().getTime() + i * 24 * 60 * 60 * 1000);
-      dates.push(date);
-    }
-    return dates;
-  };
+const MeetingTimeModal = ({ visible, onClose, onSelect, doctorId }) => {
+  const [availability, setAvailability] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [fadeAnim] = useState(new Animated.Value(0));
 
-  const getTimeSlots = (date) => {
-    const slots = [];
-    let hour = 9;
-    while (hour < 18) {
-      for (let minute = 0; minute < 60; minute += 30) {
-        const slotDate = new Date(date.getFullYear(), date.getMonth(), date.getDate(), hour, minute);
-        slots.push(slotDate);
+  useEffect(() => {
+    const fetchAvailability = async () => {
+      try {
+        const doctorDoc = await getDoc(doc(db, 'doctors', doctorId));
+        if (doctorDoc.exists()) {
+          const doctorData = doctorDoc.data();
+          setAvailability(doctorData.availability || []);
+        } else {
+          console.log('No such doctor found!');
+        }
+      } catch (error) {
+        console.error('Error fetching availability: ', error);
+      } finally {
+        setLoading(false);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
       }
-      hour++;
+    };
+
+    if (visible && doctorId) {
+      fetchAvailability();
     }
-    return slots;
-  };
+  }, [visible, doctorId, fadeAnim]);
 
-  const handleSlotSelect = (slot) => {
-    setSelectedSlot(slot);
+  const renderTimeSlot = ({ item }) => {
+    const [day, time] = item.split(' ');
+    return (
+      <TouchableOpacity
+        style={styles.timeSlot}
+        onPress={() => onSelect(item)}
+      >
+        <View style={styles.dayContainer}>
+          <MaterialCommunityIcons name="calendar-blank" size={24} color="#E91E63" />
+          <Text style={styles.dayText}>{day}</Text>
+        </View>
+        <View style={styles.timeContainer}>
+          <MaterialCommunityIcons name="clock-outline" size={24} color="#E91E63" />
+          <Text style={styles.timeText}>{time}</Text>
+        </View>
+      </TouchableOpacity>
+    );
   };
-
-  const handleConfirm = () => {
-    if (selectedSlot) {
-      onSelect(selectedSlot);
-      onClose();
-    }
-  };
-
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    setSelectedSlot(null);
-  };
-
-  const dates = getDates();
 
   return (
     <Modal
-      animationType="slide"
-      transparent={true}
       visible={visible}
+      transparent={true}
+      animationType="slide"
       onRequestClose={onClose}
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <View style={styles.header}>
-            <Text style={styles.headerText}>Select Meeting Time</Text>
-            <TouchableOpacity onPress={onClose} accessibilityLabel="Close modal">
-              <Feather name="x" size={24} color="#FF8DA1" />
-            </TouchableOpacity>
-          </View>
-          <View style={styles.tabContainer}>
-            {dates.map((date) => (
-              <TouchableOpacity
-                key={date.toISOString()}
-                style={[
-                  styles.tab,
-                  selectedDate.toDateString() === date.toDateString() && styles.selectedTab
-                ]}
-                onPress={() => handleDateSelect(date)}
-                accessibilityLabel={`Select date ${moment(date).format('ddd, MMM D')}`}
-              >
-                <Text style={[
-                  styles.tabText,
-                  selectedDate.toDateString() === date.toDateString() && styles.selectedTabText
-                ]}>
-                  {moment(date).format('ddd, MMM D')}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-          <ScrollView>
+        <Animated.View style={[styles.modalContent, { opacity: fadeAnim }]}>
+          <Text style={styles.modalTitle}>Select a Time Slot</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#E91E63" />
+          ) : availability.length > 0 ? (
             <FlatList
-              data={getTimeSlots(selectedDate)}
-              keyExtractor={(slot) => slot.toISOString()}
-              numColumns={3}
-              scrollEnabled={false}
-              contentContainerStyle={styles.timeSlotContainer}
-              renderItem={({ item: slot }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.timeSlot,
-                    selectedSlot && selectedSlot.getTime() === slot.getTime() && styles.selectedTimeSlot
-                  ]}
-                  onPress={() => handleSlotSelect(slot)}
-                  accessibilityLabel={`Select time ${moment(slot).format('h:mm A')}`}
-                >
-                  <Text style={[
-                    styles.timeSlotText,
-                    selectedSlot && selectedSlot.getTime() === slot.getTime() && styles.selectedTimeSlotText
-                  ]}>
-                    {moment(slot).format('h:mm A')}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              data={availability}
+              renderItem={renderTimeSlot}
+              keyExtractor={(item) => item}
+              contentContainerStyle={styles.timeSlotsContainer}
+              showsVerticalScrollIndicator={false}
             />
-          </ScrollView>
-          {selectedSlot && (
-            <TouchableOpacity
-              style={styles.confirmButton}
-              onPress={handleConfirm}
-              accessibilityLabel="Confirm meeting time"
-            >
-              <Text style={styles.confirmButtonText}>Confirm Meeting</Text>
-            </TouchableOpacity>
+          ) : (
+            <View style={styles.noSlotsContainer}>
+              <MaterialCommunityIcons name="calendar-remove" size={48} color="#E91E63" />
+              <Text style={styles.noSlotsText}>No available time slots.</Text>
+            </View>
           )}
-        </View>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
-
 const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalContent: {
+    width: width * 0.9,
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 16,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderRadius: 24,
+    padding: 24,
     alignItems: 'center',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  headerText: {
-    fontSize: 18,
+  modalTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#FF8DA1',
-    fontFamily: 'Inter_700Bold',
+    color: '#2C3E50',
+    marginBottom: 24,
+    textAlign: 'center',
   },
-  tabContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#FFF5F7',
-    marginHorizontal: 4,
-    alignItems: 'center',
-  },
-  selectedTab: {
-    backgroundColor: '#E91E63',
-  },
-  tabText: {
-    fontSize: 14,
-    color: '#FF8DA1',
-    fontFamily: 'Inter_400Regular',
-  },
-  selectedTabText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  timeSlotContainer: {
-    justifyContent: 'space-between',
+  timeSlotsContainer: {
+    width: '100%',
+    paddingHorizontal: 8,
   },
   timeSlot: {
-    backgroundColor: '#FFF5F7',
-    padding: 8,
-    borderRadius: 12,
-    marginHorizontal: 4,
-    marginVertical: 4,
-    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    marginVertical: 8,
+    backgroundColor: '#FFF5F8',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#FFB6C1',
+  },
+  dayContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  selectedTimeSlot: {
-    backgroundColor: '#E91E63',
-  },
-  timeSlotText: {
-    fontSize: 14,
-    color: '#FF8DA1',
-    fontFamily: 'Inter_400Regular',
-  },
-  selectedTimeSlotText: {
-    color: '#FFFFFF',
-  },
-  confirmButton: {
-    backgroundColor: '#E91E63',
-    borderRadius: 20,
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  confirmButtonText: {
-    color: '#FFFFFF',
+  dayText: {
     fontSize: 16,
+    color: '#2C3E50',
     fontWeight: 'bold',
-    fontFamily: 'Inter_700Bold',
+    marginLeft: 8,
+  },
+  timeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 16,
+    color: '#2C3E50',
+    marginLeft: 8,
+  },
+  noSlotsContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 24,
+  },
+  noSlotsText: {
+    fontSize: 16,
+    color: '#7F8C8D',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  closeButton: {
+    marginTop: 24,
+    padding: 16,
+    backgroundColor: '#E91E63',
+    borderRadius: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
   },
 });
 
