@@ -39,7 +39,7 @@ const LoginScreen = () => {
     }
 
     try {
-      const formattedPhone = `+91${phoneNumber}`;
+      const formattedPhone = `+1${phoneNumber}`;
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
@@ -49,6 +49,7 @@ const LoginScreen = () => {
       console.error('Send OTP error:', error);
     }
   };
+
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       setError('Please enter a 6-digit OTP');
@@ -123,13 +124,14 @@ const LoginScreen = () => {
       console.error('Verification error:', error);
     }
   };
+
   return (
     <SafeAreaView style={styles.container}>
-     <FirebaseRecaptchaVerifierModal
+      <FirebaseRecaptchaVerifierModal
         ref={recaptchaVerifier}
         firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={true} // Enable invisible reCAPTCHA
       />
-
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView 

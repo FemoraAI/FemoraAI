@@ -5,7 +5,7 @@ import ShopHeading from './ShopHeading';
 import { useNavigation } from '@react-navigation/native';
 
 const specialties = [
-  { name: 'General', icon: <User size={24} color="#4A90E2" /> },
+  { name: 'Skin Specialist', icon: <User size={24} color="#4A90E2" /> },
   { name: 'Neurologic', icon: <Brain size={24} color="#4A90E2" /> },
   { name: 'Pediatric', icon: <Baby size={24} color="#4A90E2" /> },
   { name: 'Radiology', icon: <Activity size={24} color="#4A90E2" /> },
@@ -15,7 +15,10 @@ const SpecialtyItem = ({ specialty }) => {
   const navigation = useNavigation();
 
   return (
-    <TouchableOpacity onPress={() => navigation.navigate('list', { specialty: specialty.name })}>
+    <TouchableOpacity
+      onPress={() => navigation.navigate('list', { specialty: specialty.name })}
+      activeOpacity={0.7} // Add a slight opacity effect on press
+    >
       <View style={styles.specialtyItem}>
         <View style={styles.iconContainer}>{specialty.icon}</View>
         <Text style={styles.specialtyName}>{specialty.name}</Text>
