@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
-  FlatList, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+  FlatList,
   ActivityIndicator,
   Dimensions,
   Animated,
 } from 'react-native';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase.config'; // Adjust the import path
+import { doc, getDoc, addDoc, collection } from 'firebase/firestore';
+import { db, auth } from '../firebase.config'; // Adjust the import path
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -47,13 +47,74 @@ const MeetingTimeModal = ({ visible, onClose, onSelect, doctorId }) => {
       fetchAvailability();
     }
   }, [visible, doctorId, fadeAnim]);
+  const handleBookAppointment = async (selectedTime) => {
+    try {
+      const userId = auth.currentUser?.uid;
+      console.log(userId);
+      // Get the current user's ID
+      if (!userId) {
+        console.error('User not logged in');
+        return;
+      }
+  
+      // Split the selectedTime into day and time (only at the first whitespace)
+      const [day, ...timeParts] = selectedTime.split(' ');
+      const time = timeParts.join(' '); // Join the remaining parts to form the time
+  
+      // Calculate the date of the next occurrence of the selected day
+      const nextDate = getNextDayDate(day);
+  
+      // Add booking to Firestore
+      const bookingsCollection = collection(db, 'bookings');
+      await addDoc(bookingsCollection, {
+        doctorId,
+        userId,
+        date: nextDate, // Store the calculated date in the desired format
+        time: time, // Store the time part
+        status: 'Pending',
+        joinLink: 'google.com',
+ // Default status
+        createdAt: new Date(), // Timestamp of booking creation
+      });
+  
+      console.log('Booking confirmed!');
+      onSelect(selectedTime); // Notify parent component
+      onClose(); // Close the modal
+    } catch (error) {
+      console.error('Error confirming booking: ', error);
+    }
+  };
+  
+  // Helper function to calculate the next occurrence of a specific day
+  const getNextDayDate = (day) => {
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentDate = new Date();
+    const currentDay = currentDate.getDay(); // 0 (Sun) to 6 (Sat)
+  
+    // Find the index of the selected day
+    const selectedDayIndex = daysOfWeek.indexOf(day);
+  
+    // Calculate the difference in days
+    let daysToAdd = selectedDayIndex - currentDay;
+    if (daysToAdd < 0) {
+      daysToAdd += 7; // If the selected day is earlier in the week, add 7 days
+    }
+  
+    // Calculate the next occurrence of the selected day
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(currentDate.getDate() + daysToAdd);
+  
+    // Format the date as "Month Day, Year" (e.g., "November 2, 2024")
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return nextDate.toLocaleDateString(undefined, options);
+  };
 
   const renderTimeSlot = ({ item }) => {
     const [day, time] = item.split(' ');
     return (
       <TouchableOpacity
         style={styles.timeSlot}
-        onPress={() => onSelect(item)}
+        onPress={() => handleBookAppointment(item)}
       >
         <View style={styles.dayContainer}>
           <MaterialCommunityIcons name="calendar-blank" size={24} color="#E91E63" />

@@ -1,75 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, Image, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { MeetingTimeModal } from './MeetingTimeModal';
-const UPCOMING_APPOINTMENTS = [
-  {
-    id: 1,
-    doctorName: 'Dr. Emily Lestiryna',
-    specialty: 'General Practitioner',
-    rating: 4.9,
-    reviews: '2.8k',
-    date: 'October 30, 2024',
-    time: '9:00 AM',
-    status: 'Confirmed',
-    image: 'https://via.placeholder.com/60x60.png?text=EL'
-  },
-  {
-    id: 2,
-    doctorName: 'Dr. Michael Chen',
-    specialty: 'Cardiologist',
-    rating: 4.8,
-    reviews: '3.2k',
-    date: 'November 2, 2024',
-    time: '2:30 PM',
-    status: 'Pending',
-    image: 'https://via.placeholder.com/60x60.png?text=MC'
-  }
-];
-
-const HISTORY_APPOINTMENTS = [
-  {
-    id: 3,
-    doctorName: 'Dr. Sarah Johnson',
-    specialty: 'Dermatologist',
-    rating: 4.7,
-    reviews: '1.9k',
-    date: 'October 15, 2024',
-    time: '11:00 AM',
-    status: 'Completed',
-    image: 'https://via.placeholder.com/60x60.png?text=SJ'
-  },
-  {
-    id: 4,
-    doctorName: 'Dr. James Wilson',
-    specialty: 'Orthopedist',
-    rating: 4.9,
-    reviews: '2.1k',
-    date: 'October 8, 2024',
-    time: '3:45 PM',
-    status: 'Completed',
-    image: 'https://via.placeholder.com/60x60.png?text=JW'
-  },
-  {
-    id: 5,
-    doctorName: 'Dr. Emily Lestiryna',
-    specialty: 'General Practitioner',
-    rating: 4.9,
-    reviews: '2.8k',
-    date: 'September 30, 2024',
-    time: '10:15 AM',
-    status: 'Cancelled',
-    image: 'https://via.placeholder.com/60x60.png?text=EL'
-  }
-];
+import { auth ,db } from '../firebase.config'; // Adjust the import path as necessary
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 
 const AppointmentCard = ({ appointment, isUpcoming }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+
   const handleReschedule = () => {
     setSelectedAppointment(appointment);
     setModalVisible(true);
-  }; 
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'Confirmed':
@@ -90,31 +34,13 @@ const AppointmentCard = ({ appointment, isUpcoming }) => {
   const renderButtons = () => {
     if (!isUpcoming) return null;
 
-    if (appointment.status === 'Pending') {
+    if (appointment.status === 'Pending' || appointment.status === 'Confirmed') {
       return (
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.rescheduleButton}>
-            <Text style={styles.rescheduleButtonText}>Join</Text>
-          </TouchableOpacity>
-          {selectedAppointment && (
-        <MeetingTimeModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        onSelect={(selectedTime) => {
-          console.log('Selected time:', selectedTime);
-          setModalVisible(false);
-        }}
-      />
-      
-      )}
-        </View>
-      );
-    }
-
-    if (appointment.status === 'Confirmed') {
-      return (
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity style={[styles.rescheduleButton, styles.fullWidthButton]}>
+          <TouchableOpacity 
+            style={[styles.rescheduleButton, styles.fullWidthButton]}
+            onPress={() => Linking.openURL(appointment.joinLink)}
+          >
             <Text style={styles.rescheduleButtonText}>Join</Text>
           </TouchableOpacity>
         </View>
@@ -136,22 +62,26 @@ const AppointmentCard = ({ appointment, isUpcoming }) => {
           <Text style={styles.doctorSpecialty}>{appointment.specialty}</Text>
           <View style={styles.ratingContainer}>
             <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.ratingText}>{appointment.rating} ({appointment.reviews} reviews)</Text>
+            <Text style={styles.ratingText}>{appointment.rating}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.appointmentDetails}>
-        <View style={styles.detailRow}>
-          <View style={styles.detailItem}>
-            <Ionicons name="calendar-outline" size={18} color="#E91E63" />
-            <Text style={styles.detailText}>{appointment.date}</Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Ionicons name="time-outline" size={18} color="#E91E63" />
-            <Text style={styles.detailText}>{appointment.time}</Text>
-          </View>
-        </View>
+      <View style={styles.detailRow}>
+  <View style={styles.detailItem}>
+    <Ionicons name="calendar-outline" size={18} color="#E91E63" />
+    <Text style={styles.detailText}>
+      {appointment.date || "No date available"}
+    </Text>
+  </View>
+  <View style={styles.detailItem}>
+    <Ionicons name="time-outline" size={18} color="#E91E63" />
+    <Text style={styles.detailText}>
+      {appointment.time || "No time available"}
+    </Text>
+  </View>
+</View>
         <View style={styles.statusContainer}>
           <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
             <Ionicons name={statusStyle.icon} size={16} color={statusStyle.text} />
@@ -167,9 +97,57 @@ const AppointmentCard = ({ appointment, isUpcoming }) => {
 
 const AppointmentSchedulePage = ({ navigation }) => {
   const [activeTab, setActiveTab] = useState('upcoming');
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [appointments, setAppointments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const appointments = activeTab === 'upcoming' ? UPCOMING_APPOINTMENTS : HISTORY_APPOINTMENTS;
+  useEffect(() => {
+    const fetchAppointments = async () => {
+
+    const userId = auth.currentUser?.uid;
+      
+      setLoading(true);
+      const bookingsRef = collection(db, 'bookings');
+      const q = query(bookingsRef, where('userId', '==', userId)); // Replace with actual user ID
+      const querySnapshot = await getDocs(q);
+
+      const appointmentsData = [];
+      for (const docSnapshot of querySnapshot.docs) {
+        const bookingData = docSnapshot.data();
+        const doctorRef = doc(db, 'doctors', bookingData.doctorId);
+        const doctorSnap = await getDoc(doctorRef);
+
+        if (doctorSnap.exists()) {
+          const doctorData = doctorSnap.data();
+          appointmentsData.push({
+            id: docSnapshot.id,
+            ...bookingData,
+            doctorName: doctorData.name,
+            specialty: doctorData.specialty,
+            rating: doctorData.rating,
+            reviews: doctorData.reviews,
+            image: doctorData.profileImage,
+          });
+        }
+      }
+
+      setAppointments(appointmentsData);
+      setLoading(false);
+    };
+
+    fetchAppointments();
+  }, []);
+
+  const filteredAppointments = appointments.filter(appointment => 
+    activeTab === 'upcoming' ? appointment.status !== 'Completed' && appointment.status !== 'Cancelled' : appointment.status === 'Completed' || appointment.status === 'Cancelled'
+  );
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <ActivityIndicator size="large" color="#E91E63" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -205,13 +183,24 @@ const AppointmentSchedulePage = ({ navigation }) => {
         
       {/* Appointment Cards */}
       <ScrollView style={styles.cardsContainer}>
-        {appointments.map((appointment) => (
-          <AppointmentCard 
-            key={appointment.id}
-            appointment={appointment}
-            isUpcoming={activeTab === 'upcoming'}
-          />
-        ))}
+        {filteredAppointments.length > 0 ? (
+          filteredAppointments.map((appointment) => (
+            <AppointmentCard 
+              key={appointment.id}
+              appointment={appointment}
+              isUpcoming={activeTab === 'upcoming'}
+            />
+          ))
+        ) : (
+          <View style={styles.emptyStateContainer}>
+
+            <Text style={styles.emptyStateText}>
+              {activeTab === 'upcoming' 
+                ? "Book a meeting and start your journey! 🌟" 
+                : "Your past meetings will be shown here. 📚"}
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -384,6 +373,23 @@ const styles = StyleSheet.create({
   },
   fullWidthButton: {
     flex: 1,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 100,
+  },
+  emptyStateImage: {
+    width: 100,
+    height: 100,
+    marginBottom: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#8F90A6',
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
 });
 
