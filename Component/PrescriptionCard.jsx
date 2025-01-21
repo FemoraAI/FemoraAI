@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const PrescriptionCard = ({ prescription, onOrder }) => {
   const [expanded, setExpanded] = useState(false);
@@ -11,7 +10,7 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
     switch (status) {
       case 'New':
         return { bg: '#E8F5E9', text: '#4CAF50', icon: 'document-text' };
-      case 'Ordered':
+      case 'Placed':
         return { bg: '#FFF3E0', text: '#FF9800', icon: 'cart' };
       case 'Delivered':
         return { bg: '#E3F2FD', text: '#2196F3', icon: 'checkbox' };
@@ -21,6 +20,8 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
   };
 
   const statusStyle = getStatusColor(prescription.status);
+
+  // Calculate total amount based on selected medications
   const totalAmount = Object.keys(selectedMeds).reduce((sum, medIndex) => {
     if (selectedMeds[medIndex]) {
       return sum + prescription.medications[medIndex].price;
@@ -28,36 +29,45 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
     return sum;
   }, 0);
 
+  // Toggle selection of a medication
   const toggleMedication = (index) => {
-    setSelectedMeds(prev => ({
+    setSelectedMeds((prev) => ({
       ...prev,
-      [index]: !prev[index]
+      [index]: !prev[index],
     }));
   };
 
-  const handleOrder = () => {
-    const orderedMeds = prescription.medications.filter((_, index) => selectedMeds[index]);
+  // Handle the "Order Medicines" button press
+  const handleOrderPress = () => {
+    // Gather selected medications
+    const orderedMeds = prescription.medications.filter(
+      (_, index) => selectedMeds[index]
+    );
+
+    // Call the onOrder prop with the prescription ID, selected medications, and total amount
     onOrder(prescription.id, orderedMeds, totalAmount);
   };
 
   return (
     <View style={styles.prescriptionCard}>
       {/* Header Section */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.cardHeader}
         onPress={() => setExpanded(!expanded)}
       >
-       
         <View style={styles.prescriptionInfo}>
           <Text style={styles.doctorName}>{prescription.doctorName}</Text>
           <Text style={styles.doctorSpecialty}>{prescription.specialty}</Text>
           <Text style={styles.prescriptionDate}>
-            <Ionicons name="calendar-outline" size={14} color="#8F90A6" /> {prescription.date}
+            <Ionicons name="calendar-outline" size={14} color="#8F90A6" />{' '}
+            {prescription.date}
           </Text>
         </View>
         <View style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}>
           <Ionicons name={statusStyle.icon} size={16} color={statusStyle.text} />
-          <Text style={[styles.statusText, { color: statusStyle.text }]}>{prescription.status}</Text>
+          <Text style={[styles.statusText, { color: statusStyle.text }]}>
+            {prescription.status}
+          </Text>
         </View>
       </TouchableOpacity>
 
@@ -77,14 +87,14 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
             {prescription.medications.map((medication, index) => (
               <View key={index} style={styles.medicationItem}>
                 {prescription.status === 'New' && (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.checkbox}
                     onPress={() => toggleMedication(index)}
                   >
-                    <Ionicons 
-                      name={selectedMeds[index] ? "checkbox" : "square-outline"} 
-                      size={24} 
-                      color={selectedMeds[index] ? "#E91E63" : "#8F90A6"} 
+                    <Ionicons
+                      name={selectedMeds[index] ? 'checkbox' : 'square-outline'}
+                      size={24}
+                      color={selectedMeds[index] ? '#E91E63' : '#8F90A6'}
                     />
                   </TouchableOpacity>
                 )}
@@ -97,7 +107,9 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
                     Duration: {medication.duration} • Quantity: {medication.quantity}
                   </Text>
                   <View style={styles.medicationPriceRow}>
-                    <Text style={styles.medicationPrice}>${medication.price.toFixed(2)}</Text>
+                    <Text style={styles.medicationPrice}>
+                      ${medication.price.toFixed(2)}
+                    </Text>
                     {!medication.inStock && (
                       <Text style={styles.outOfStock}>Out of Stock</Text>
                     )}
@@ -114,12 +126,12 @@ const PrescriptionCard = ({ prescription, onOrder }) => {
                 <Text style={styles.totalText}>Total Amount:</Text>
                 <Text style={styles.totalPrice}>${totalAmount.toFixed(2)}</Text>
               </View>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.orderButton,
-                  (!Object.values(selectedMeds).some(Boolean) && styles.disabledButton)
+                  !Object.values(selectedMeds).some(Boolean) && styles.disabledButton,
                 ]}
-                onPress={handleOrder}
+                onPress={handleOrderPress}
                 disabled={!Object.values(selectedMeds).some(Boolean)}
               >
                 <Text style={styles.orderButtonText}>Order Medicines</Text>
@@ -147,12 +159,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     padding: 20,
     alignItems: 'center',
-  },
-  doctorImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 16,
   },
   prescriptionInfo: {
     flex: 1,

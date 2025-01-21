@@ -11,7 +11,6 @@ import {
   Modal,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import axios from 'axios';
 import ShopHeading from './ShopHeading';
 import PeriodTracker from './periodtracker';
 import { useUser } from './context/UserContext';
@@ -46,21 +45,13 @@ const HomeScreen = () => {
       setCurrentPromoIndex((prevIndex) => (prevIndex + 1) % promotionalMessages.length);
     }, 15000);
 
-    // Fetch products from the backend on initial render
-    fetchProducts();
+    // Fetch products from the backend on initial renderr
 
     return () => clearInterval(interval);
   }, []);
 
   // Fetch products from the backend
-  const fetchProducts = async () => {
-    try {
-      const response = await axios.get('http://localhost:8080/products'); // Update with your backend URL
-      setProducts(response.data); // Set the fetched products in state
-    } catch (error) {
-      console.error("Failed to fetch products:", error);
-    }
-  };
+
 
   const handleAddToCart = (item) => {
     setCartItems((prevItems) => ({

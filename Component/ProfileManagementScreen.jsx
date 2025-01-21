@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
-  TextInput, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  TextInput,
   FlatList,
   SafeAreaView,
   StatusBar,
   Platform,
   KeyboardAvoidingView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useUser,logout } from './context/UserContext';
+import { useUser, logout } from './context/UserContext';
 import moment from 'moment';
 import { getAuth, signOut } from 'firebase/auth';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db,auth} from '../firebase.config'; // Adjust the import path as needed
 
 const ProfileManagementScreen = ({ navigation }) => {
   const { userData, updateUserData } = useUser();
@@ -25,9 +28,11 @@ const ProfileManagementScreen = ({ navigation }) => {
     ...userData,
     lastPeriodStart: userData.lastPeriodStart || moment().format('YYYY-MM-DD'),
     periodDays: userData.periodDays || '',
-    cycleDays: userData.cycleLength || ''
+    cycleDays: userData.cycleLength || '',
   });
   const [editingField, setEditingField] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
@@ -37,10 +42,51 @@ const ProfileManagementScreen = ({ navigation }) => {
     return unsubscribe;
   }, [navigation, localUserData, updateUserData]);
 
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const userId = auth.currentUser?.uid;
+
+      try {
+        if (!userId) return;
+
+        // Fetch the user's order IDs
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+          const orderIds = userDoc.data().orders || [];
+
+          // Fetch details for each order
+          const fetchedOrders = [];
+          for (const orderId of orderIds) {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderDoc = await getDoc(orderRef);
+
+            if (orderDoc.exists()) {
+              fetchedOrders.push({
+                id: orderId,
+                ...orderDoc.data(),
+              });
+            }
+          }
+
+          setOrders(fetchedOrders);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        Alert.alert('Error', 'Failed to fetch orders. Please try again.');
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [userData?.userId]);
+
   const handleInputChange = (field, value) => {
-    setLocalUserData(prev => ({
+    setLocalUserData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -54,9 +100,8 @@ const ProfileManagementScreen = ({ navigation }) => {
       await signOut(auth);
       // Call the logout function from context to update state
       logout();
-      
     } catch (error) {
-      Alert.alert('Logout Error', ''+error);
+      Alert.alert('Logout Error', '' + error);
     }
   };
 
@@ -87,7 +132,9 @@ const ProfileManagementScreen = ({ navigation }) => {
 
   const renderOrderItem = ({ item }) => (
     <View style={styles.orderItem}>
-      <Text style={styles.orderDate}>{item.date}</Text>
+      <Text style={styles.orderDate}>
+        {moment(item.timestamp?.toDate()).format('MMMM Do YYYY, h:mm a')}
+      </Text>
       <Text style={styles.orderStatus}>{item.status}</Text>
       <FlatList
         data={item.items}
@@ -98,12 +145,12 @@ const ProfileManagementScreen = ({ navigation }) => {
               <Text style={styles.productName}>{product.name}</Text>
               <Text style={styles.productQuantity}>Qty: {product.quantity}</Text>
             </View>
-            <Text style={styles.productPrice}>${product.price.toFixed(2)}</Text>
+            <Text style={styles.productPrice}>₹{product.price.toFixed(2)}</Text>
           </View>
         )}
         keyExtractor={(product, index) => `${item.id}-${index}`}
       />
-      <Text style={styles.orderTotal}>Total: ${item.total.toFixed(2)}</Text>
+      <Text style={styles.orderTotal}>Total: ₹{item.totalAmount}</Text>
     </View>
   );
 
@@ -112,13 +159,34 @@ const ProfileManagementScreen = ({ navigation }) => {
       case 'profile':
         return (
           <View style={styles.profileInfo}>
-            <Image 
-              source={localUserData.profileImage || require('../assets/15.png')} 
-              style={styles.profileImage} 
+            <Image
+              source={localUserData.profileImage || require('../assets/15.png')}
+              style={styles.profileImage}
             />
             <TouchableOpacity style={styles.editImageButton}>
               <MaterialIcons name="camera-alt" size={20} color="#FFF" />
             </TouchableOpacity>
+          </View>
+        );
+      case 'orders':
+        return (
+          <View style={styles.ordersSection}>
+            <Text style={styles.sectionTitle}>My Orders</Text>
+            {loadingOrders ? (
+              <ActivityIndicator size="large" color="#E91E63" />
+            ) : orders.length > 0 ? (
+
+              
+              <FlatList
+                data={orders}
+                inverted 
+                renderItem={renderOrderItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <Text style={styles.emptyOrdersText}>No orders yet</Text>
+            )}
           </View>
         );
       case 'details':
@@ -139,38 +207,6 @@ const ProfileManagementScreen = ({ navigation }) => {
             {renderDetailItem('Cycle Length', localUserData.cycleDays, 'cycleDays')}
           </View>
         );
-      case 'orders':
-        return (
-          <View style={styles.ordersSection}>
-            <Text style={styles.sectionTitle}>My Orders</Text>
-            <FlatList
-              data={[
-                { 
-                  id: '1', 
-                  date: '2023-05-15', 
-                  status: 'Delivered', 
-                  items: [
-                    { name: 'Menstrual Cup', quantity: 1, price: 25.99, image: 'https://via.placeholder.com/50' },
-                    { name: 'Organic Pads', quantity: 2, price: 12.50, image: 'https://via.placeholder.com/50' }
-                  ],
-                  total: 50.99
-                },
-                { 
-                  id: '2', 
-                  date: '2023-06-02', 
-                  status: 'In Transit', 
-                  items: [
-                    { name: 'Organic Tampons', quantity: 3, price: 15.00, image: 'https://via.placeholder.com/50' }
-                  ],
-                  total: 45.00
-                },
-              ]}
-              renderItem={renderOrderItem}
-              keyExtractor={item => item.id}
-              ListEmptyComponent={<Text style={styles.emptyOrdersText}>No orders yet</Text>}
-            />
-          </View>
-        );
       case 'logout':
         return (
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -185,13 +221,13 @@ const ProfileManagementScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar backgroundColor="#E91E63" barStyle="light-content" />
-      
+
       <LinearGradient
         colors={['#E91E63', '#FF4081']}
         style={styles.header}
       >
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
@@ -200,20 +236,20 @@ const ProfileManagementScreen = ({ navigation }) => {
         <View style={styles.placeholder} />
       </LinearGradient>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
         <FlatList
           data={[
             { key: 'profile', type: 'profile' },
+            { key: 'orders', type: 'orders' }, // Moved orders section here
             { key: 'details', type: 'details' },
             { key: 'period', type: 'period' },
-            { key: 'orders', type: 'orders' },
             { key: 'logout', type: 'logout' },
           ]}
           renderItem={renderContent}
-          keyExtractor={item => item.key}
+          keyExtractor={(item) => item.key}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         />
@@ -273,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 8,
   },
-  detailsCard: {
+  ordersSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 20,
@@ -289,42 +325,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2D2D3A',
     marginBottom: 16,
-  },
-  detailItem: {
-    marginBottom: 16,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#8F90A6',
-    marginBottom: 4,
-  },
-  valueContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  detailValue: {
-    fontSize: 16,
-    color: '#2D2D3A',
-    fontWeight: '500',
-  },
-  editInput: {
-    fontSize: 16,
-    color: '#2D2D3A',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E91E63',
-    paddingVertical: 4,
-  },
-  ordersSection: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#E91E63',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 5,
   },
   orderItem: {
     marginBottom: 20,
@@ -384,6 +384,42 @@ const styles = StyleSheet.create({
     color: '#8F90A6',
     textAlign: 'center',
     marginTop: 16,
+  },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  detailItem: {
+    marginBottom: 16,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#8F90A6',
+    marginBottom: 4,
+  },
+  valueContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#2D2D3A',
+    fontWeight: '500',
+  },
+  editInput: {
+    fontSize: 16,
+    color: '#2D2D3A',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E91E63',
+    paddingVertical: 4,
   },
   logoutButton: {
     backgroundColor: '#E91E63',

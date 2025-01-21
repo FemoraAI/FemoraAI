@@ -6,8 +6,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Modal } from 'react-native';
 import { useUser } from './context/UserContext';
-import { auth ,db } from '../firebase.config'; // Import your Firestore instance
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { auth, db } from '../firebase.config'; // Import your Firestore instance
+import { doc, getDoc, addDoc, updateDoc, arrayUnion, collection, query, where, getDocs } from 'firebase/firestore';
 import PrescriptionCard from './PrescriptionCard'; // Adjust the path as needed
 
 const PrescriptionPage = ({ navigation }) => {
@@ -41,8 +41,8 @@ const PrescriptionPage = ({ navigation }) => {
               if (doctorDoc.exists()) {
                 const doctorData = doctorDoc.data();
                 fetchedPrescriptions.push({
-                  id: prescriptionId,
-                  ...prescriptionData,
+                  id: prescriptionId, // This is the document ID
+                  ...prescriptionData, // This includes the `prescriptionId` field
                   doctorName: doctorData.name,
                   specialty: doctorData.specialty,
                   image: doctorData.image,
@@ -63,17 +63,80 @@ const PrescriptionPage = ({ navigation }) => {
     fetchPrescriptions();
   }, [userData.userId]);
 
-  const handleOrder = (prescriptionId, medications, totalAmount) => {
-    // Handle order logic here
-    setPrescriptions(prev =>
-      prev.map(prescription =>
-        prescription.id === prescriptionId
-          ? { ...prescription, status: 'Ordered' }
-          : prescription
-      )
-    );
-    // You would typically make an API call here to process the order
-    alert(`Order placed successfully!\nTotal Amount: $${totalAmount.toFixed(2)}`);
+  const handleOrder = async (prescriptionId, medications, totalAmount) => {
+    try {
+      const userId = auth.currentUser?.uid;
+
+      // Debug prescriptionId (document ID)
+      console.log('Document ID:', prescriptionId);
+      console.log('Type of Document ID:', typeof prescriptionId);
+
+      // Ensure prescriptionId is a string or number
+      if (typeof prescriptionId !== 'string' && typeof prescriptionId !== 'number') {
+        throw new Error('Invalid document ID: must be a string or number');
+      }
+
+      // Debug medications
+      console.log('Medications:', medications);
+
+      // Serialize medications (if necessary)
+      const serializedMedications = medications.map(medication => ({
+        name: medication.name,
+        dosage: medication.dosage,
+        frequency: medication.frequency,
+        duration: medication.duration,
+        quantity: medication.quantity,
+        price: medication.price,
+        inStock: medication.inStock,
+      }));
+
+      // Create the order object
+      const order = {
+        userId,
+        prescriptionId, // Use the document ID here
+        medications: serializedMedications,
+        totalAmount,
+        status: 'Ordered',
+        timestamp: new Date(),
+      };
+
+      // Debug order object
+      console.log('Order object:', order);
+
+      // Add the order to the 'orders' collection
+      const orderRef = await addDoc(collection(db, 'orders'), order);
+      console.log('Order created with ID:', orderRef.id);
+
+      // Add the order ID to the user's 'orders' array
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, {
+        orders: arrayUnion(orderRef.id),
+      });
+      console.log('Order ID added to user document');
+
+      // Update the prescription status in Firestore
+      const prescriptionRef = doc(db, 'prescriptions', prescriptionId); // Use the document ID here
+      await updateDoc(prescriptionRef, {
+        status: 'Placed',
+      });
+      console.log('Prescription status updated to Placed');
+
+      // Update the local state to reflect the order status
+      setPrescriptions(prev =>
+        prev.map(prescription =>
+          prescription.id === prescriptionId // Use the document ID here
+            ? { ...prescription, status: 'Placed' }
+            : prescription
+        )
+      );
+      console.log('Updated prescriptions:', prescriptions);
+
+      // Show a success message
+      alert(`Order placed successfully!\nOrder ID: ${orderRef.id}\nTotal Amount: $${totalAmount.toFixed(2)}`);
+    } catch (error) {
+      console.error('Error placing order:', error);
+      alert('Failed to place the order. Please try again.');
+    }
   };
 
   if (loading) {
@@ -102,8 +165,8 @@ const PrescriptionPage = ({ navigation }) => {
       <ScrollView style={styles.prescriptionsList}>
         {prescriptions.map(prescription => (
           <PrescriptionCard
-            key={prescription.id}
-            prescription={prescription}
+            key={prescription.id} // Document ID
+            prescription={prescription} // Full prescription object
             onOrder={handleOrder}
           />
         ))}

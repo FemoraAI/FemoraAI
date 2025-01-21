@@ -22,6 +22,9 @@ export const CartProvider = ({ children }) => {
   const removeFromCart = useCallback((productId) => {
     setCartItems((prevItems) => prevItems.filter((item) => item.id !== productId));
   }, []);
+  const clearCart = () => {
+    setCartItems([]); // Clear the cart by setting it to an empty array
+  };
 
   const updateQuantity = (id, action) => {
     setCartItems(prevItems => {
@@ -44,7 +47,8 @@ export const CartProvider = ({ children }) => {
         cartItems,
         addToCart,
         removeFromCart,
-        updateQuantity
+        updateQuantity,
+        clearCart
       }}
     >
       {children}

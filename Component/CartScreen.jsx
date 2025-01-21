@@ -1,24 +1,68 @@
-import React, { useCallback, useMemo,useState} from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
+import React, { useCallback, useMemo, useState } from 'react';
+import {
+  Image,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  SafeAreaView,
   Modal,
   ScrollView,
-  TouchableOpacity, 
-  Image, 
-  SafeAreaView, 
-  Animated 
+  Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import SubscriptionModal from './SubscriptionModal'; // Added import for SubscriptionModal
 import { useCart } from './context/CartContext';
-import { useUser } from './context/UserContext'; // Added import for user context
+import { useUser } from './context/UserContext';
+import { collection, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore';
+import { db,auth } from '../firebase.config'; // Adjust the import path as needed
+import { useNavigation } from '@react-navigation/native';
 
-const CheckoutModal = ({ visible, onClose, totalAmount }) => {
+const placeOrder = async ( cartItems, totalAmount) => {
+    const userId = auth.currentUser?.uid;
+  try {
+    // Create the order object
+    const order = {
+      userId,
+      items: cartItems,
+      totalAmount,
+      status: 'Placed',
+      timestamp: new Date(),
+    };
+
+    // Add the order to the 'orders' collection
+    const orderRef = await addDoc(collection(db, 'orders'), order);
+
+    // Add the order ID to the user's 'orders' array
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      orders: arrayUnion(orderRef.id), // Add the order ID to the array
+    });
+
+    console.log('Order placed successfully! Order ID:', orderRef.id);
+    return orderRef.id; // Return the order ID for further use
+  } catch (error) {
+    console.error('Error placing order:', error);
+    throw error;
+  }
+};
+
+// CheckoutModal Component
+const CheckoutModal = ({ visible, onClose, totalAmount, cartItems, onOrderSuccess }) => {
   const { userData } = useUser();
+
+  const handlePlaceOrder = async () => {
+    try {
+      const orderId = await placeOrder(cartItems, totalAmount);
+      Alert.alert('Order Placed', `Your order has been placed successfully! Order ID: ${orderId}`);
+      onOrderSuccess(); // Call the success handler
+      onClose();
+    } catch (error) {
+      Alert.alert('Order Error', 'Failed to place the order. Please try again.');
+      console.error('Error placing order:', error);
+    }
+  };
 
   return (
     <Modal
@@ -35,7 +79,7 @@ const CheckoutModal = ({ visible, onClose, totalAmount }) => {
           >
             <ScrollView>
               <Text style={styles.modalTitle}>Checkout Details</Text>
-              
+
               <View style={styles.detailsContainer}>
                 <View style={styles.detailSection}>
                   <Text style={styles.detailHeader}>Delivery Address</Text>
@@ -53,18 +97,15 @@ const CheckoutModal = ({ visible, onClose, totalAmount }) => {
                   <Text style={styles.detailText}>Total Amount: ₹{totalAmount}</Text>
                 </View>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.upiButton}
-                  onPress={() => {
-                    console.log('Processing UPI payment for:', totalAmount);
-                    // Implement UPI payment logic here
-                  }}
+                  onPress={handlePlaceOrder}
                 >
                   <MaterialCommunityIcons name="qrcode-scan" size={24} color="#FFF" style={styles.upiIcon} />
                   <Text style={styles.upiButtonText}>Pay ₹{totalAmount} with UPI</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.closeButton}
                   onPress={onClose}
                 >
@@ -78,87 +119,12 @@ const CheckoutModal = ({ visible, onClose, totalAmount }) => {
     </Modal>
   );
 };
-const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
-  const translateY = React.useRef(new Animated.Value(50)).current;
-  const opacity = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.parallel([
-      Animated.timing(translateY, {
-        toValue: 0,
-        duration: 300,
-        delay: index * 100,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacity, {
-        toValue: 1,
-        duration: 300,
-        delay: index * 100,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [index]);
-
-  return (
-    <Animated.View style={[styles.cartItemContainer, { transform: [{ translateY }], opacity }]}>
-      <LinearGradient
-        colors={['#FFF5F5', '#FFF0F5']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.cartItem}
-      >
-        <Image 
-          source={item.image} 
-          style={styles.itemImage} 
-          resizeMode="contain"
-        />
-        <View style={styles.itemDetails}>
-          <View style={styles.itemHeader}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <TouchableOpacity 
-              onPress={() => onRemove(item.id)}
-              style={styles.deleteButton}
-            >
-              <MaterialCommunityIcons 
-                name="trash-can-outline" 
-                size={24} 
-                color="#FF9999" 
-              />
-            </TouchableOpacity>
-          </View>
-          
-          <Text style={styles.itemPrice}>₹{item.price.toFixed(2)} each</Text>
-          
-          <View style={styles.quantityControl}>
-            <TouchableOpacity 
-              onPress={() => onQuantityChange(item.id, 'decrease')} 
-              style={styles.quantityButton}
-            >
-              <MaterialCommunityIcons name="minus" size={18} color="#FFF" />
-            </TouchableOpacity>
-            <Text style={styles.quantityText}>{item.quantity}</Text>
-            <TouchableOpacity 
-              onPress={() => onQuantityChange(item.id, 'increase')} 
-              style={styles.quantityButton}
-            >
-              <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.itemTotalPrice}>
-            Total: ₹{(item.price * item.quantity).toFixed(2)}
-          </Text>
-        </View>
-      </LinearGradient>
-    </Animated.View>
-  );
-});
-
+// CartScreen Component
 const CartScreen = () => {
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
-  const { userDetails } = useUser(); // Get user details from context
+    const navigation = useNavigation();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart(); // Add clearCart from CartContext
+  const { userData } = useUser();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isSubscriptionModalVisible, setIsSubscriptionModalVisible] = useState(false);
 
   const handleQuantityChange = useCallback((id, type) => {
     updateQuantity(id, type);
@@ -168,10 +134,14 @@ const CartScreen = () => {
     removeFromCart(id);
   }, [removeFromCart]);
 
-  const totalAmount = useMemo(() => 
+  const totalAmount = useMemo(() =>
     cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
     [cartItems]
   );
+
+  const handlePlaceOrderSuccess = useCallback(() => {
+    clearCart(); // Clear the cart after successful order placement
+  }, [clearCart]);
 
   const renderItem = useCallback(({ item, index }) => (
     <CartItem
@@ -189,49 +159,115 @@ const CartScreen = () => {
         style={styles.container}
       >
         <Text style={styles.title}>Cart</Text>
-        
-        <FlatList
-          data={cartItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id.toString()}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.cartListContainer}
-        />
 
-        <View style={styles.totalContainer}>
-          <Text style={styles.totalText}>Total: ₹{totalAmount}</Text>
-          <TouchableOpacity 
-  style={styles.checkoutButton}
-  onPress={() => setIsSubscriptionModalVisible(true)}
->
-  <Text style={styles.buttonText}>Proceed to Checkout</Text>
-</TouchableOpacity>
-        </View>
-        <SubscriptionModal
-  visible={isSubscriptionModalVisible}
-  onClose={() => setIsSubscriptionModalVisible(false)}
-  onSubscribe={() => {
-    setIsSubscriptionModalVisible(false);
-    // Here you can add logic to handle the subscription
-    // For now, we'll just open the checkout modal
-    setIsModalVisible(true);
-  }}
-/>
+        {cartItems.length === 0 ? (
+          <View style={styles.emptyCartContainer}>
+            <Text style={styles.emptyCartText}>Your cart is empty!</Text>
+            <TouchableOpacity
+              style={styles.checkOrdersButton}
+              onPress={() => {
+                navigation.navigate('ProfileManagement'); // Update the navigation logic
+                console.log('Navigate to My Profile or Orders section');
+              }}
+            >
+              <Text style={styles.checkOrdersButtonText}>Check Your Orders</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
+            <FlatList
+              data={cartItems}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id.toString()}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.cartListContainer}
+            />
+
+            <View style={styles.totalContainer}>
+              <Text style={styles.totalText}>Total: ₹{totalAmount}</Text>
+              <TouchableOpacity
+                style={styles.checkoutButton}
+                onPress={() => setIsModalVisible(true)}
+              >
+                <Text style={styles.buttonText}>Proceed to Checkout</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
+
         <CheckoutModal
           visible={isModalVisible}
           onClose={() => setIsModalVisible(false)}
           totalAmount={totalAmount}
-
+          cartItems={cartItems}
+          onOrderSuccess={handlePlaceOrderSuccess} // Pass the success handler
         />
       </LinearGradient>
     </SafeAreaView>
   );
 };
+// CartItem Component
+const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
+  return (
+    <View style={styles.cartItemContainer}>
+      <LinearGradient
+        colors={['#FFF5F5', '#FFF0F5']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.cartItem}
+      >
+        <Image
+          source={item.image}
+          style={styles.itemImage}
+          resizeMode="contain"
+        />
+        <View style={styles.itemDetails}>
+          <View style={styles.itemHeader}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            <TouchableOpacity
+              onPress={() => onRemove(item.id)}
+              style={styles.deleteButton}
+            >
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={24}
+                color="#FF9999"
+              />
+            </TouchableOpacity>
+          </View>
 
+          <Text style={styles.itemPrice}>₹{item.price.toFixed(2)} each</Text>
+
+          <View style={styles.quantityControl}>
+            <TouchableOpacity
+              onPress={() => onQuantityChange(item.id, 'decrease')}
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="minus" size={18} color="#FFF" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item.quantity}</Text>
+            <TouchableOpacity
+              onPress={() => onQuantityChange(item.id, 'increase')}
+              style={styles.quantityButton}
+            >
+              <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.itemTotalPrice}>
+            Total: ₹{(item.price * item.quantity).toFixed(2)}
+          </Text>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+});
+
+// Styles
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    color: '#FFE5E5',
+    backgroundColor: '#FFE5E5',
   },
   container: {
     flex: 1,
@@ -243,9 +279,28 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: '#FF9999',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+  },
+  emptyCartContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyCartText: {
+    fontSize: 24,
+    color: '#FF9999',
+    marginBottom: 20,
+  },
+  checkOrdersButton: {
+    backgroundColor: '#FF9999',
+    borderRadius: 25,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: 'center',
+  },
+  checkOrdersButtonText: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   cartListContainer: {
     paddingBottom: 20,
@@ -323,7 +378,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 25,
     padding: 20,
-    marginTop: 20,
+    marginTop: 10, // Adjusted to avoid overlap
+    marginBottom: 80, // Add margin to avoid bottom tab overlap
     shadowColor: '#FFB6C1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
@@ -341,13 +397,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFB6C1',
     borderRadius: 25,
     paddingVertical: 15,
-    marginBottom: 25,
     alignItems: 'center',
-    shadowColor: '#FF9999',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 6,
   },
   buttonText: {
     color: '#FFF',
@@ -424,83 +474,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
- modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '80%',
-    borderRadius: 25,
-    overflow: 'hidden',
-  },
-  modalGradient: {
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FF9999',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  detailsContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    padding: 15,
-  },
-  detailSection: {
-    marginBottom: 20,
-  },
-  detailHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4A4A4A',
-    marginBottom: 10,
-  },
-  detailText: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 5,
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#FF6B6B',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  upiButton: {
-    backgroundColor: '#FF9999',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 15,
-    borderRadius: 15,
-    marginTop: 10,
-  },
-  upiIcon: {
-    marginRight: 10,
-  },
-  upiButtonText: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    backgroundColor: '#FFE5E5',
-    padding: 15,
-    borderRadius: 15,
-    marginTop: 10,
-  },
-  closeButtonText: {
-    color: '#FF9999',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
 });
-
 
 export default CartScreen;
