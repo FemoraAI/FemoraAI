@@ -173,4 +173,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HorizontalProductList;
+export default HorizontalProductList; 

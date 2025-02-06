@@ -16,14 +16,14 @@ import {
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useUser, logout } from './context/UserContext';
+import { useUser } from './context/UserContext';
 import moment from 'moment';
 import { getAuth, signOut } from 'firebase/auth';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db,auth} from '../firebase.config'; // Adjust the import path as needed
 
 const ProfileManagementScreen = ({ navigation }) => {
-  const { userData, updateUserData } = useUser();
+  const { userData, updateUserData,logout } = useUser();
   const [localUserData, setLocalUserData] = useState({
     ...userData,
     lastPeriodStart: userData.lastPeriodStart || moment().format('YYYY-MM-DD'),
@@ -98,8 +98,7 @@ const ProfileManagementScreen = ({ navigation }) => {
     try {
       const auth = getAuth();
       await signOut(auth);
-      // Call the logout function from context to update state
-      logout();
+      logout(); // Call the logout function from context
     } catch (error) {
       Alert.alert('Logout Error', '' + error);
     }
