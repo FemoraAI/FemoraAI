@@ -1,14 +1,14 @@
 import React, { createContext, useState, useContext, useCallback } from 'react';
 import moment from 'moment';
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  collection, 
-  query, 
-  where, 
-  getDocs 
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { db, auth } from '../../firebase.config';
@@ -17,28 +17,22 @@ const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [userData, setUserData] = useState({
-    // User Profile Data
+    // Initialize with empty/default values for structure
     uid: null,
     name: '',
     email: '',
     phone: '',
     address: '',
     profileImage: null,
-
-    // Period Tracking Data
-    lastPeriodStart: moment().format('YYYY-MM-DD'),
-    periodDays: '5',
-    cycleDays: '28',
-
-    // App State
+    lastPeriodStart: null, // No default value
+    periodDays: null, // No default value
+    cycleDays: null, // No default value
     isLoggedIn: false,
     isDoctor: false,
     needsOnboarding: true,
-    
-    // Metadata
     createdAt: null,
     lastUpdated: null,
-    onboardingCompleted: false
+    onboardingCompleted: false,
   });
 
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
@@ -51,28 +45,32 @@ export const UserProvider = ({ children }) => {
   const login = async () => {
     const auth = getAuth();
     const currentUser = auth.currentUser;
-    
+
     if (currentUser) {
       try {
         const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
         const formattedPhone = currentUser.phoneNumber;
         const isDoctor = await checkDoctorStatus(formattedPhone);
-        
+
         if (userDoc.exists()) {
-          setUserData({
+          // Fetch existing data from Firestore
+          setUserData((prev) => ({
+            ...prev,
             ...userDoc.data(),
             isLoggedIn: true,
             isDoctor,
-            needsOnboarding: false
-          });
+            needsOnboarding: false,
+          }));
         } else {
-          setUserData({
+          // New user: Set minimal data and mark for onboarding
+          setUserData((prev) => ({
+            ...prev,
             uid: currentUser.uid,
             phone: formattedPhone,
             isLoggedIn: true,
             isDoctor,
-            needsOnboarding: true
-          });
+            needsOnboarding: true,
+          }));
         }
       } catch (error) {
         console.error('Error in login:', error);
@@ -81,12 +79,12 @@ export const UserProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setUserData(prev => ({
+    setUserData((prev) => ({
       ...prev,
       isLoggedIn: false,
       isDoctor: false,
       uid: null,
-      needsOnboarding: true
+      needsOnboarding: true,
     }));
   };
 
@@ -94,60 +92,45 @@ export const UserProvider = ({ children }) => {
     try {
       const auth = getAuth();
       const currentUser = auth.currentUser;
-  
+
       if (!currentUser) {
         throw new Error('No authenticated user found');
       }
-  
+
       const timestamp = new Date().toISOString();
       const userRef = doc(db, 'users', currentUser.uid);
-  
-      // Prepare the complete user data for Firestore
+
+      // Merge only the fields provided in newData
       const firestoreData = {
-        // User Profile
-        uid: currentUser.uid,
-        email: currentUser.email,
-        name: newData.name || userData.name,
-        phone: newData.phone || userData.phone,
-        address: newData.address || userData.address,
-        profileImage: newData.profileImage || userData.profileImage,
-  
-        // Period Tracking
-        lastPeriodStart: newData.lastPeriodStart || userData.lastPeriodStart,
-        periodDays: newData.periodDays || userData.periodDays,
-        cycleDays: newData.cycleDays || userData.cycleDays,
-  
-        // Metadata
+        ...(newData.name && { name: newData.name }),
+        ...(newData.phone && { phone: newData.phone }),
+        ...(newData.address && { address: newData.address }),
+        ...(newData.profileImage && { profileImage: newData.profileImage }),
+        ...(newData.lastPeriodStart && { lastPeriodStart: newData.lastPeriodStart }),
+        ...(newData.periodDays && { periodDays: newData.periodDays }),
+        ...(newData.cycleDays && { cycleDays: newData.cycleDays }),
+        ...(newData.onboardingCompleted && { onboardingCompleted: newData.onboardingCompleted }),
+        ...(newData.isDoctor && { isDoctor: newData.isDoctor }),
         lastUpdated: timestamp,
-        createdAt: userData.createdAt || timestamp,
-        onboardingCompleted: newData.onboardingCompleted || userData.onboardingCompleted,
-        isDoctor: newData.isDoctor || userData.isDoctor,
-  
-        // Additional tracking data if provided
-        ...newData
       };
-  
-      // Remove any client-only fields before saving to Firestore
-      const { isLoggedIn, needsOnboarding, ...firestoreDataWithoutClientFields } = firestoreData;
-  
-      // Update Firestore
-      await setDoc(userRef, firestoreDataWithoutClientFields, { merge: true });
-  
-      // Update local state
-      setUserData(prev => ({
+
+      // Update Firestore with only the provided fields
+      await setDoc(userRef, firestoreData, { merge: true });
+
+      // Update local state with the merged data
+      setUserData((prev) => ({
         ...prev,
         ...firestoreData,
         isLoggedIn: true,
-        needsOnboarding: false
+        needsOnboarding: false,
       }));
-  
     } catch (error) {
       console.error('Error updating user data:', error);
       throw error;
     }
   };
 
-  // Period tracking helper functions
+  // Period tracking helper functions remain unchanged
   const getNextPeriodDate = () => {
     const lastPeriod = moment(userData.lastPeriodStart);
     const cycleLength = parseInt(userData.cycleDays) || 28;
@@ -158,10 +141,10 @@ export const UserProvider = ({ children }) => {
     const nextPeriod = moment(getNextPeriodDate());
     const fertileStart = moment(nextPeriod).subtract(16, 'days');
     const fertileEnd = moment(nextPeriod).subtract(12, 'days');
-    
+
     return {
       start: fertileStart.format('YYYY-MM-DD'),
-      end: fertileEnd.format('YYYY-MM-DD')
+      end: fertileEnd.format('YYYY-MM-DD'),
     };
   };
 
@@ -169,7 +152,7 @@ export const UserProvider = ({ children }) => {
     const today = moment();
     const periodStart = moment(userData.lastPeriodStart);
     const periodEnd = moment(userData.lastPeriodStart).add(parseInt(userData.periodDays) || 5, 'days');
-    
+
     return today.isBetween(periodStart, periodEnd, 'day', '[]');
   };
 
@@ -177,26 +160,26 @@ export const UserProvider = ({ children }) => {
     const today = moment();
     const lastPeriodStart = moment(userData.lastPeriodStart);
     const cycleLength = parseInt(userData.cycleDays) || 28;
-    
+
     if (isInPeriod()) {
       const currentDay = today.diff(lastPeriodStart, 'days') + 1;
       return {
         isOnPeriod: true,
         message: `Period day ${currentDay}`,
-        daysCount: currentDay
+        daysCount: currentDay,
       };
     }
-    
+
     let nextPeriodDate = moment(lastPeriodStart);
     while (nextPeriodDate.isSameOrBefore(today)) {
       nextPeriodDate.add(cycleLength, 'days');
     }
-    
+
     const daysToNext = nextPeriodDate.diff(today, 'days');
     return {
       isOnPeriod: false,
       message: `days until\nnext period`,
-      daysCount: daysToNext
+      daysCount: daysToNext,
     };
   };
 
@@ -206,9 +189,9 @@ export const UserProvider = ({ children }) => {
     const cycleLength = parseInt(userData.cycleDays) || 28;
     const periodLength = parseInt(userData.periodDays) || 5;
     let currentCycleStart = moment(lastPeriodStart);
-    
+
     currentCycleStart.subtract(2, 'months');
-    
+
     while (currentCycleStart.isBefore(moment().add(6, 'months'))) {
       if (currentCycleStart.isSame(month, 'month')) {
         for (let i = 0; i < periodLength; i++) {
@@ -216,21 +199,21 @@ export const UserProvider = ({ children }) => {
           if (periodDate.isSame(month, 'month')) {
             activeDates.push({
               day: periodDate.date(),
-              type: 'period'
+              type: 'period',
             });
           }
         }
-        
+
         const nextPeriodStart = moment(currentCycleStart).add(cycleLength, 'days');
         const fertileStart = moment(nextPeriodStart).subtract(16, 'days');
         const fertileEnd = moment(nextPeriodStart).subtract(12, 'days');
-        
+
         if (fertileStart.isSame(month, 'month') || fertileEnd.isSame(month, 'month')) {
           for (let date = moment(fertileStart); date.isSameOrBefore(fertileEnd); date.add(1, 'day')) {
             if (date.isSame(month, 'month')) {
               activeDates.push({
                 day: date.date(),
-                type: 'fertile'
+                type: 'fertile',
               });
             }
           }
@@ -238,13 +221,13 @@ export const UserProvider = ({ children }) => {
       }
       currentCycleStart.add(cycleLength, 'days');
     }
-    
+
     return activeDates;
   };
 
   return (
-    <UserContext.Provider 
-      value={{ 
+    <UserContext.Provider
+      value={{
         userData,
         updateUserData,
         login,
