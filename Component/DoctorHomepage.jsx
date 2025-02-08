@@ -1,18 +1,78 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from './context/UserContext'; // Adjust the import path as needed
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { app } from '../firebase.config'; // Adjust the import path as needed
+import { getAuth, signOut } from 'firebase/auth';
 
 const DoctorHomeScreen = ({ navigation }) => {
-  const { logout } = useUser(); // Get the logout function from context
-  const doctorName = "Dr. Smith"; // Replace with actual doctor name
-  const appointmentCount = 5; // Replace with actual appointment count
+  const { logout, userData } = useUser(); // Get the logout function and user data from context
+  const [doctorDetails, setDoctorDetails] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const handleLogout = () => {
-    logout(); // Call the logout function
-    navigation.navigate('Login'); // Navigate back to the login screen
+  const db = getFirestore(app);
+  const auth = getAuth();
+
+  useEffect(() => {
+    const fetchDoctorDetails = async () => {
+      try {
+        const doctorsRef = collection(db, 'doctors');
+        const doctorQuery = query(doctorsRef, where('phone', '==', userData.phone));
+        const doctorQuerySnapshot = await getDocs(doctorQuery);
+
+        if (!doctorQuerySnapshot.empty) {
+          const doctorData = doctorQuerySnapshot.docs[0].data();
+          setDoctorDetails(doctorData);
+        } else {
+          setError('Doctor details not found');
+        }
+      } catch (err) {
+        setError('Failed to fetch doctor details');
+        console.error('Error fetching doctor details:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDoctorDetails();
+  }, [userData.phone]);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+
+      navigation.navigate('Login');
+      console.log("navigating");// Sign out from Firebase Auth
+      logout(); // Call the logout function from context
+       // Navigate back to the login screen
+    } catch (error) {
+      console.error('Logout error:', error);
+      setError('Failed to logout. Please try again.');
+    }
   };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#E91E63" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -24,7 +84,7 @@ const DoctorHomeScreen = ({ navigation }) => {
         >
           <View>
             <Text style={styles.welcomeText}>Welcome,</Text>
-            <Text style={styles.doctorName}>{doctorName}</Text>
+            <Text style={styles.doctorName}>{doctorDetails?.name || 'Dr. Smith'}</Text>
           </View>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out" size={24} color="#FFFFFF" />
@@ -36,7 +96,7 @@ const DoctorHomeScreen = ({ navigation }) => {
           <Ionicons name="calendar" size={24} color="#E91E63" />
           <View style={styles.appointmentTextContainer}>
             <Text style={styles.appointmentTitle}>Today's Appointments</Text>
-            <Text style={styles.appointmentCount}>{appointmentCount}</Text>
+            <Text style={styles.appointmentCount}>{doctorDetails?.appointments?.length || 0}</Text>
           </View>
         </View>
 
@@ -57,7 +117,6 @@ const DoctorHomeScreen = ({ navigation }) => {
       </ScrollView>
     </SafeAreaView>
   );
-     
 };
 
 // Styles
@@ -145,6 +204,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#666',
     marginTop: 5,
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#E91E63',
     textAlign: 'center',
   },
 });
