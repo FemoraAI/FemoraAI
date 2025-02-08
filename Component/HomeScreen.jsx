@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,7 @@ import PeriodTracker from './periodtracker';
 import { useUser } from './context/UserContext';
 import HorizontalProductList from './HorizontalProductList';
 import { useNavigation } from '@react-navigation/native';
+
 const promotionalMessages = [
   {
     title: 'TRACK YOUR CYCLE!',
@@ -35,32 +36,44 @@ const HomeScreen = () => {
 
   const [currentPromoIndex, setCurrentPromoIndex] = useState(0);
   const [cartItems, setCartItems] = useState({});
-  const [products, setProducts] = useState([]); // State to store products from backend
+  const [products, setProducts] = useState([]);
   const [isFocused, setIsFocused] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Fetch promotional messages every 15 seconds
   useEffect(() => {
-    // Fetch promotional messages every 15 seconds
     const interval = setInterval(() => {
       setCurrentPromoIndex((prevIndex) => (prevIndex + 1) % promotionalMessages.length);
     }, 15000);
-
-    // Fetch products from the backend on initial renderr
 
     return () => clearInterval(interval);
   }, []);
 
   // Fetch products from the backend
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch('https://your-backend-api.com/products');
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error('Error fetching products:', error);
+      }
+    };
 
+    fetchProducts();
+  }, []);
 
-  const handleAddToCart = (item) => {
+  // Add item to cart
+  const handleAddToCart = useCallback((item) => {
     setCartItems((prevItems) => ({
       ...prevItems,
       [item]: (prevItems[item] || 0) + 1,
     }));
-  };
+  }, []);
 
-  const handleRemoveFromCart = (item) => {
+  // Remove item from cart
+  const handleRemoveFromCart = useCallback((item) => {
     setCartItems((prevItems) => {
       const newQuantity = (prevItems[item] || 0) - 1;
       if (newQuantity <= 0) {
@@ -72,9 +85,10 @@ const HomeScreen = () => {
         [item]: newQuantity,
       };
     });
-  };
+  }, []);
 
-  const renderProductCard = ({ item }) => (
+  // Render individual product card
+  const renderProductCard = useCallback(({ item }) => (
     <View style={styles.productCard}>
       <Image source={{ uri: item.image_url }} style={styles.productImage} />
       <Text style={styles.productName}>{item.name}</Text>
@@ -90,9 +104,10 @@ const HomeScreen = () => {
         </TouchableOpacity>
       </View>
     </View>
-  );
+  ), [cartItems, handleAddToCart, handleRemoveFromCart]);
 
-  const renderHeader = ({}) => (
+  // Render header for FlatList
+  const renderHeader = useCallback(() => (
     <>
       <View style={styles.header}>
         <View>
@@ -104,16 +119,7 @@ const HomeScreen = () => {
         </TouchableOpacity>
         
         {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <Icon name="search-outline" size={20} color="#8E8D8A" style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, isFocused && styles.searchInputFocused]}
-            placeholder="Search for products or services"
-            placeholderTextColor="#8E8D8A"
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-          />
-        </View>
+        
       </View>
       
       {/* Promotional Message Section */}
@@ -128,20 +134,10 @@ const HomeScreen = () => {
 
       <Text style={styles.header}>Period Pals</Text>
       <View>
-      <HorizontalProductList category="pads" />
+        <HorizontalProductList category="pads" />
       </View>
-      <Text style={styles.header}>Try Something New</Text>
-      <View>  
-      <HorizontalProductList category="tamp" />
-      </View>
-      <Text style={styles.header}>Self Care</Text>
-      <HorizontalProductList category="snacks" />
-
-      <Text style={styles.header}>Snacks</Text>
-      <HorizontalProductList category="Pads" />
-
     </>
-  );
+  ), [userData.name, isFocused]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -157,11 +153,11 @@ const HomeScreen = () => {
   );
 };
 
-// Complete Styles for the HomeScreen component
+// Styles for the HomeScreen component
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FFF5F7', // Soft pastel background
+    backgroundColor: '#FFF5F7',
   },
   container: {
     paddingHorizontal: 16,
@@ -171,21 +167,20 @@ const styles = StyleSheet.create({
     flexDirection: 'column',
     alignItems: 'flex-start',
     marginTop: 25,
-    fontWeight : 'bold',
-  color:'grey',
-    fontSize : '18',
+    fontWeight: 'bold',
+    color: 'grey',
+    fontSize: 18,
     marginBottom: 10,
-    
   },
   welcomeText: {
     fontSize: 16,
-    color: '#8E8D8A', // Soft pastel text color
+    color: '#8E8D8A',
   },
   userName: {
     fontSize: 24,
     fontWeight: 'regular',
     color: '#8E8D8A',
-    fontFamily : 'Montserrat Alternates Regular', // Soft pastel text color
+    fontFamily: 'Montserrat Alternates Regular',
   },
   profileIcon: {
     padding: 10,
@@ -197,7 +192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderRadius: 25,
-    borderColor: '#8E8D8A', // Soft pastel border color
+    borderColor: '#8E8D8A',
     borderWidth: 1,
     paddingHorizontal: 15,
     marginTop: 10,
@@ -207,29 +202,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     fontSize: 16,
-    color: '#8E8D8A', // Soft pastel text color
+    color: '#8E8D8A',
     marginLeft: 10,
     borderWidth: 0,
   },
   searchInputFocused: {
     outlineWidth: 0,
-  },
-  promoContainer: {
-    marginTop: 10,
-    paddingVertical: 10,
-    backgroundColor: '#FAD4D8', // Soft pastel background
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  promoTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#8E8D8A', // Soft pastel text color
-  },
-  promoText: {
-    fontSize: 16,
-    color: '#FFF',
-    textAlign: 'center',
   },
   productCard: {
     backgroundColor: '#FFF',
@@ -249,7 +227,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'regular',
     color: '#8E8D8A',
-  fontFamily: 'Montserrat Alternates Regular', // Soft pastel text color
+    fontFamily: 'Montserrat Alternates Regular',
     marginTop: 5,
   },
   productDescription: {
@@ -261,7 +239,7 @@ const styles = StyleSheet.create({
   productPrice: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#8E8D8A', // Soft pastel text color
+    color: '#8E8D8A',
     marginVertical: 4,
   },
   quantityContainer: {
@@ -271,7 +249,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   quantityButton: {
-    backgroundColor: '#FAD4D8', // Soft pastel background
+    backgroundColor: '#FAD4D8',
     borderRadius: 5,
     padding: 5,
     width: 30,
@@ -283,62 +261,9 @@ const styles = StyleSheet.create({
   },
   quantityCount: {
     fontSize: 16,
-    color: '#8E8D8A', // Soft pastel text color
+    color: '#8E8D8A',
     marginHorizontal: 5,
   },
-  modalBackground: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  modalContainer: {
-    backgroundColor: '#FFF',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    height: '50%', // Cover half of the screen
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#8E8D8A', // Soft pastel text color
-    marginBottom: 10,
-  },
-  closeButton: {
-    backgroundColor: '#8E8D8A', // Soft pastel background
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  closeButtonText: {
-    color: '#FFF',
-    fontSize: 16,
-  },
-  profileInfo: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    marginBottom: 10,
-    borderWidth: 2,
-    borderColor: '#8E8D8A', // Soft pastel border color
-  },
-  profileName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#8E8D8A', // Soft pastel text color
-  },
-  profileEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 10,
-  },
 });
-
 
 export default HomeScreen;

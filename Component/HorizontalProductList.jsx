@@ -4,11 +4,11 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useCart } from './context/CartContext';
 import { db } from '../firebase.config'; // Adjust the import path
 import { collection, query, where, getDocs } from 'firebase/firestore';
+
 const ProductCard = ({ product }) => {
   const { cartItems, addToCart, updateQuantity } = useCart();
   const cartItem = cartItems.find((item) => item.id === product.id);
   const quantity = cartItem?.quantity || 0;
-  
 
   const handleAdd = () => addToCart(product);
   const handleIncrement = () => updateQuantity(product.id, 'increase');
@@ -23,12 +23,12 @@ const ProductCard = ({ product }) => {
       />
       <Text style={styles.name}>{product.name}</Text>
       <Text style={styles.weight}>Qty: {product.pcs}</Text>
-      
+
       <View style={styles.priceContainer}>
         <Text style={styles.price}>₹{product.price}</Text>
         <Text style={styles.originalPrice}>₹{product.originalPrice}</Text>
       </View>
-      
+
       {quantity === 0 ? (
         <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
           <Text style={styles.addButtonText}>ADD</Text>
@@ -47,11 +47,14 @@ const ProductCard = ({ product }) => {
     </View>
   );
 };
+
 const HorizontalProductList = ({ category }) => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true; // Track whether the component is still mounted
+
     const fetchProducts = async () => {
       try {
         // Create a Firestore query to fetch products by category
@@ -69,17 +72,26 @@ const HorizontalProductList = ({ category }) => {
           ...doc.data(), // Include all other fields
         }));
 
-        // Update the state with the fetched products
-        setProducts(productsData);
+        // Update the state only if the component is still mounted
+        if (isMounted) {
+          setProducts(productsData);
+          setLoading(false);
+        }
       } catch (error) {
         console.error('Error fetching products: ', error);
-      } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProducts();
-  }, [category]);
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+    };
+  }, [category]); // Only re-run when the category changes
 
   const renderProduct = ({ item }) => <ProductCard product={item} />;
 
@@ -98,8 +110,6 @@ const HorizontalProductList = ({ category }) => {
     />
   );
 };
-
-
 
 const styles = StyleSheet.create({
   listContainer: {
@@ -173,4 +183,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default HorizontalProductList; 
+export default HorizontalProductList;
