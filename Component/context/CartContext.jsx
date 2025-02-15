@@ -5,17 +5,17 @@ const CartContext = createContext(null);
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
 
-  const addToCart = useCallback((product) => {
+  const addToCart = useCallback((product, size) => {
     setCartItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.id === product.id);
+      const existingItem = prevItems.find((item) => item.id === product.id && item.size === size);
       if (existingItem) {
         return prevItems.map((item) =>
-          item.id === product.id
+          item.id === product.id && item.size === size
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
       }
-      return [...prevItems, { ...product, quantity: 1 }];
+      return [...prevItems, { ...product, quantity: 1, size }];
     });
   }, []);
 
@@ -26,14 +26,14 @@ export const CartProvider = ({ children }) => {
     setCartItems([]); // Clear the cart by setting it to an empty array
   };
 
-  const updateQuantity = (id, action) => {
+  const updateQuantity = (id, size, action) => {
     setCartItems(prevItems => {
       if (action === 'remove') {
-        return prevItems.filter(item => item.id !== id);
+        return prevItems.filter(item => item.id !== id || item.size !== size);
       }
       
       return prevItems.map(item => {
-        if (item.id === id) {
+        if (item.id === id && item.size === size) {
           const newQuantity = action === 'increase' ? item.quantity + 1 : item.quantity - 1;
           return newQuantity > 0 ? { ...item, quantity: newQuantity } : null;
         }

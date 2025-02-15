@@ -24,7 +24,7 @@ const styles = StyleSheet.create({
         color: 'grey',
         textAlign: 'center',
         fontFamily: 'Montserrat Alternates',
-        marginHorizontal: 8,
+        marginHorizontal: 0,
     },
     line: {
         flex: 1,

@@ -16,11 +16,22 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useCart } from './context/CartContext';
 import { useUser } from './context/UserContext';
 import { collection, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore';
-import { db,auth } from '../firebase.config'; // Adjust the import path as needed
+import { db, auth } from '../firebase.config'; // Adjust the import path as needed
 import { useNavigation } from '@react-navigation/native';
+import {updateQuantity, removeFromCart} from '../Component/context/CartContext';
 
-const placeOrder = async ( cartItems, totalAmount) => {
-    const userId = auth.currentUser?.uid;
+
+consthandleRemove = (productId, size) => {
+  removeFromCart(productId, size);
+};
+const handleIncrement = (productId, size) => {
+  updateQuantity(productId, size, 'increase');
+};
+const handleDecrement = (productId, size) => {
+  updateQuantity(productId, size, 'decrease');
+};
+const placeOrder = async (cartItems, totalAmount) => {
+  const userId = auth.currentUser?.uid;
   try {
     // Create the order object
     const order = {
@@ -119,10 +130,11 @@ const CheckoutModal = ({ visible, onClose, totalAmount, cartItems, onOrderSucces
     </Modal>
   );
 };
+
 // CartScreen Component
 const CartScreen = () => {
-    const navigation = useNavigation();
-  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart(); // Add clearCart from CartContext
+  const navigation = useNavigation();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
   const { userData } = useUser();
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -135,7 +147,10 @@ const CartScreen = () => {
   }, [removeFromCart]);
 
   const totalAmount = useMemo(() =>
-    cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0).toFixed(2),
+    cartItems.reduce((acc, item) => {
+      const discountedPrice = item.price * (1 - (item.discountPercentage || 0) / 100);
+      return acc + discountedPrice * item.quantity;
+    }, 0).toFixed(2),
     [cartItems]
   );
 
@@ -206,8 +221,11 @@ const CartScreen = () => {
     </SafeAreaView>
   );
 };
+
 // CartItem Component
 const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
+  const discountedPrice = item.price * (1 - (item.discountPercentage || 0) / 100);
+
   return (
     <View style={styles.cartItemContainer}>
       <LinearGradient
@@ -217,7 +235,7 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
         style={styles.cartItem}
       >
         <Image
-          source={item.image}
+          source={{ uri: item.image }} // Use the image URL from Firestore
           style={styles.itemImage}
           resizeMode="contain"
         />
@@ -236,26 +254,27 @@ const CartItem = React.memo(({ item, index, onQuantityChange, onRemove }) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.itemPrice}>₹{item.price.toFixed(2)} each</Text>
+          <Text style={styles.itemPrice}>₹{discountedPrice.toFixed(2)} each</Text>
+          {item.size && <Text style={styles.itemSize}>{item.size}</Text>}
 
           <View style={styles.quantityControl}>
             <TouchableOpacity
               onPress={() => onQuantityChange(item.id, 'decrease')}
               style={styles.quantityButton}
             >
-              <MaterialCommunityIcons name="minus" size={18} color="#FFF" />
+              <MaterialCommunityIcons name="minus" size={18} color="#FFF" onPress={handleDecrement} />
             </TouchableOpacity>
             <Text style={styles.quantityText}>{item.quantity}</Text>
             <TouchableOpacity
               onPress={() => onQuantityChange(item.id, 'increase')}
               style={styles.quantityButton}
             >
-              <MaterialCommunityIcons name="plus" size={18} color="#FFF" />
+              <MaterialCommunityIcons name="plus" size={18} color="#FFF" onPress={handleIncrement}/>
             </TouchableOpacity>
           </View>
 
           <Text style={styles.itemTotalPrice}>
-            Total: ₹{(item.price * item.quantity).toFixed(2)}
+            Total: ₹{(discountedPrice * item.quantity).toFixed(2)}
           </Text>
         </View>
       </LinearGradient>
@@ -320,9 +339,9 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: 20,
+    width: 80,
+    height: 80,
+    borderRadius: 10,
     marginRight: 20,
   },
   itemDetails: {
@@ -346,6 +365,11 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 16,
     color: '#888',
+    marginBottom: 5,
+  },
+  itemSize: {
+    fontSize: 14,
+    color: '#666',
     marginBottom: 10,
   },
   itemTotalPrice: {
@@ -378,8 +402,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 25,
     padding: 20,
-    marginTop: 10, // Adjusted to avoid overlap
-    marginBottom: 80, // Add margin to avoid bottom tab overlap
+    marginTop: 10,
+    marginBottom: 80,
     shadowColor: '#FFB6C1',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

@@ -25,6 +25,7 @@ const PrescriptionPage = ({ navigation }) => {
         if (userDoc.exists()) {
           const userPrescriptions = userDoc.data().prescriptions || [];
           const fetchedPrescriptions = [];
+          console.log('Fetched prescriptions:', fetchedPrescriptions);
 
           // Fetch details for each prescription
           for (const prescriptionId of userPrescriptions) {

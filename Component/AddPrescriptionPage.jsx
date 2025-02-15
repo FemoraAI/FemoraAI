@@ -152,7 +152,7 @@ const AddPrescriptionPage = () => {
     specialty: userData?.specialty || '',
     date: formatDate(new Date()),
     prescriptionId: generatePrescriptionId(),
-    status: 'Pending',
+    status: 'New',
     notes: '',
     medications: [],
     userId: '', // Initialize as empty
@@ -165,7 +165,8 @@ const AddPrescriptionPage = () => {
     dosageUnit: '',
     frequency: '',
     duration: '',
-    price: ''
+    price: '',
+    inStock: 'true'
   });
 
   const [patients, setPatients] = useState([]);
