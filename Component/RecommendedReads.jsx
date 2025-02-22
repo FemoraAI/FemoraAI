@@ -11,7 +11,7 @@ import {
   Easing,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { BlurView } from 'expo-blur';
+import ArticleModal from './modal/Articlemodal'; // Import the reusable modal
 
 const { width, height } = Dimensions.get('window');
 
@@ -71,30 +71,31 @@ Learn to recognize your partner's needs during different phases of their cycle a
 ];
 
 const RecommendedReads = () => {
-    const [activeArticleIndex, setActiveArticleIndex] = useState(0);
-    const [isArticleExpanded, setIsArticleExpanded] = useState(false);
-    const modalAnimation = useRef(new Animated.Value(0)).current;
-    const cardScaleAnimation = useRef(new Animated.Value(1)).current;
-    const scrollViewRef = useRef(null);
-  
-    // Calculate card width including margin
-    const CARD_WIDTH = width * 0.7;
-    const CARD_MARGIN = 16;
-    const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN;
-  
-    const handleScroll = (event) => {
-      const scrollPosition = event.nativeEvent.contentOffset.x;
-      const newIndex = Math.round(scrollPosition / ITEM_SIZE);
-      if (newIndex !== activeArticleIndex && newIndex >= 0 && newIndex < ARTICLES.length) {
-        setActiveArticleIndex(newIndex);
-      }
-    };
+  const [activeArticleIndex, setActiveArticleIndex] = useState(0);
+  const [isArticleExpanded, setIsArticleExpanded] = useState(false);
+  const modalAnimation = useRef(new Animated.Value(0)).current;
+  const cardScaleAnimation = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef(null);
 
-    useEffect(() => {
+  // Calculate card width including margin
+  const CARD_WIDTH = width * 0.7;
+  const CARD_MARGIN = 16;
+  const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN;
+
+  const handleScroll = (event) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const newIndex = Math.round(scrollPosition / ITEM_SIZE);
+    if (newIndex !== activeArticleIndex && newIndex >= 0 && newIndex < ARTICLES.length) {
+      setActiveArticleIndex(newIndex);
+    }
+  };
+
+  useEffect(() => {
     if (isArticleExpanded) {
       animateModal(true);
     }
   }, [isArticleExpanded]);
+
   const animateModal = (show) => {
     Animated.parallel([
       Animated.spring(modalAnimation, {
@@ -121,80 +122,7 @@ const RecommendedReads = () => {
     animateModal(true);
   };
 
-  const renderArticleModal = () => {
-    const article = ARTICLES[activeArticleIndex];
-    const translateY = modalAnimation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [height, 0],
-    });
-
-    const scale = modalAnimation.interpolate({
-      inputRange: [0, 1],
-      outputRange: [0.8, 1],
-    });
-
-    const opacity = modalAnimation.interpolate({
-      inputRange: [0, 0.5, 1],
-      outputRange: [0, 0.5, 1],
-    });
-
-    return (
-      <Modal transparent visible={isArticleExpanded} onRequestClose={() => animateModal(false)}>
-        <BlurView intensity={20} style={styles.modalOverlay}>
-          <Animated.View
-            style={[
-              styles.articleModal,
-              {
-                transform: [{ translateY }, { scale }],
-                opacity,
-              },
-            ]}
-          >
-            <View style={styles.modalHeader}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                
-                onPress={() => animateModal(false)}
-              >
-                <MaterialIcons name="close" size={24} color={COLORS.text} />
-              </TouchableOpacity>
-              <Text style={styles.modalTitle}>{article.title}</Text>
-              <Text style={styles.modalSubtitle}>{article.subtitle}</Text>
-            </View>
-
-            <ScrollView 
-              style={styles.modalContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <View style={styles.modalTitleSection}>
-               
-              
-                
-                <View style={styles.modalMetaInfo}>
-                  <View style={styles.readTimeContainer}>
-                    <MaterialIcons name="schedule" size={16} color={COLORS.lightText} />
-                    <Text style={styles.readTime}>{article.readTime}</Text>
-                  </View>
-                  <View style={styles.recommendedContainer}>
-                    <MaterialIcons name="verified" size={16} color={COLORS.secondary} />
-                    <Text style={styles.modalRecommended}>
-                      by {article.recommendedBy}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              <View style={styles.modalContentDivider} />
-
-              <Text style={styles.modalText}>{article.content}</Text>
-            </ScrollView>
-          </Animated.View>
-        </BlurView>
-      </Modal>
-    );
-  };
-
-return (
+  return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Recommended Reads</Text>
       <ScrollView
@@ -230,10 +158,8 @@ return (
               onPress={() => handleCardPress(index)}
               activeOpacity={0.9}
             >
-              {/* Card content remains the same */}
               <Text style={styles.articleTitle}>{article.title}</Text>
               <Text style={styles.articleSubtitle}>{article.subtitle}</Text>
-              
               <View style={styles.cardFooter}>
                 <Text style={styles.readTime}>{article.readTime}</Text>
                 <View style={styles.recommendedContainer}>
@@ -260,7 +186,14 @@ return (
         ))}
       </View>
 
-      {renderArticleModal()}
+      <Modal transparent visible={isArticleExpanded} onRequestClose={() => animateModal(false)}>
+        <ArticleModal
+          article={ARTICLES[activeArticleIndex]}
+          isVisible={isArticleExpanded}
+          onClose={() => animateModal(false)}
+          animationValue={modalAnimation}
+        />
+      </Modal>
     </View>
   );
 };
@@ -284,13 +217,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   articleCardContainer: {
-    width: width * 0.7, // Reduced from 0.85
-    marginRight: 16, // Reduced from 20
+    width: width * 0.7,
+    marginRight: 16,
   },
   articleCard: {
     backgroundColor: COLORS.cardBg,
-    borderRadius: 16, // Reduced from 20
-    padding: 16, // Reduced from 20
+    borderRadius: 16,
+    padding: 16,
     shadowColor: COLORS.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -298,25 +231,18 @@ const styles = StyleSheet.create({
     elevation: 5,
     minHeight: 140,
     flex: 1,
- // Reduced from 180
   },
   articleTitle: {
-    fontSize: 18, // Reduced from 20
+    fontSize: 18,
     fontWeight: '700',
     color: COLORS.text,
-    marginTop: 8, // Reduced from 12
-    marginBottom: 6, // Reduced from 8
+    marginTop: 8,
+    marginBottom: 6,
   },
   articleSubtitle: {
-    fontSize: 14, // Reduced from 16
+    fontSize: 14,
     color: COLORS.lightText,
-    marginBottom: 8, // Reduced from 12
-  },
-
-  articleRecommended: {
-    fontSize: 12, // Reduced from 14
-    color: COLORS.secondary,
-    marginLeft: 4, // Reduced from 6
+    marginBottom: 8,
   },
   cardFooter: {
     marginTop: 'auto',
@@ -356,82 +282,6 @@ const styles = StyleSheet.create({
   inactiveDot: {
     backgroundColor: COLORS.lightText,
     opacity: 0.5,
-  },
-  modalOverlay: {
-    alignSelf: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  articleModal: {
-    backgroundColor: COLORS.white,
-    borderRadius: 25,
-    margin: 20,
-    height: height * 0.8,
-    shadowColor: COLORS.text,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  modalHeader: {
-    padding: 20,
-    paddingBottom: 0,
-  },
-  closeButton: {
-    alignSelf: 'flex-end',
-    backgroundColor: COLORS.background,
-    borderRadius: 20,
-    padding: 8,
-  },
-  modalContent: {
-    flex: 1,
-  },
-  modalTitleSection: {
-    padding: 20,
-    paddingTop: 0,
-  },
-  modalTitle: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.text,
-   
-    marginBottom: 8,
-  },
-  modalSubtitle: {
-    fontSize: 18,
-    color: COLORS.primary,
-    marginBottom: 16,
-    fontWeight: '600',
-  },
-  modalMetaInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  readTimeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  modalContentDivider: {
-    height: 1,
-    backgroundColor: COLORS.background,
-    marginHorizontal: 20,
-    marginBottom: 20,
-  },
-  modalText: {
-    fontSize: 16,
-    color: COLORS.text,
-    lineHeight: 24,
-    padding: 20,
-    paddingTop: 0,
-  },
-  modalRecommended: {
-    fontSize: 14,
-    color: COLORS.secondary,
-    marginLeft: 6,
   },
 });
 
