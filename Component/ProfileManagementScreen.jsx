@@ -1,322 +1,437 @@
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Image, 
-  TextInput, 
-  ScrollView,
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  TextInput,
+  FlatList,
   SafeAreaView,
   StatusBar,
   Platform,
   KeyboardAvoidingView,
-  Alert
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUser } from './context/UserContext';
 import moment from 'moment';
+import { getAuth, signOut } from 'firebase/auth';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db,auth} from '../firebase.config'; // Adjust the import path as needed
 
 const ProfileManagementScreen = ({ navigation }) => {
-  const { userData, updateUserData } = useUser();
+  const { userData, updateUserData,logout } = useUser();
   const [localUserData, setLocalUserData] = useState({
     ...userData,
     lastPeriodStart: userData.lastPeriodStart || moment().format('YYYY-MM-DD'),
     periodDays: userData.periodDays || '',
-    cycleDays: userData.cycleLength || ''
+    cycleDays: userData.cycleLength || '',
   });
+  const [editingField, setEditingField] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [loadingOrders, setLoadingOrders] = useState(true);
 
-  const handleSave = () => {
-    // Validate period tracking data
-    const periodDays = parseInt(localUserData.periodDays);
-    const cycleDays = parseInt(localUserData.cycleDays);
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      updateUserData(localUserData);
+    });
 
-    if (!moment(localUserData.lastPeriodStart, 'YYYY-MM-DD').isValid()) {
-      Alert.alert('Invalid Input', 'Please enter a valid date for your last period');
-      return;
-    }
+    return unsubscribe;
+  }, [navigation, localUserData, updateUserData]);
 
-    if (periodDays < 1 || periodDays > 10) {
-      Alert.alert('Invalid Input', 'Period duration should be between 1 and 10 days');
-      return;
-    }
+  useEffect(() => {
+    const fetchOrders = async () => {
+      const userId = auth.currentUser?.uid;
 
-    if (cycleDays < 21 || cycleDays > 35) {
-      Alert.alert('Invalid Input', 'Average cycle length should be between 21 and 35 days');
-      return;
-    }
+      try {
+        if (!userId) return;
 
-    updateUserData(localUserData);
-    console.log('Profile data saved:', localUserData);
-    navigation.goBack();
-  };
+        // Fetch the user's order IDs
+        const userRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userRef);
+
+        if (userDoc.exists()) {
+          const orderIds = userDoc.data().orders || [];
+
+          // Fetch details for each order
+          const fetchedOrders = [];
+          for (const orderId of orderIds) {
+            const orderRef = doc(db, 'orders', orderId);
+            const orderDoc = await getDoc(orderRef);
+
+            if (orderDoc.exists()) {
+              fetchedOrders.push({
+                id: orderId,
+                ...orderDoc.data(),
+              });
+            }
+          }
+
+          setOrders(fetchedOrders);
+        }
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+        Alert.alert('Error', 'Failed to fetch orders. Please try again.');
+      } finally {
+        setLoadingOrders(false);
+      }
+    };
+
+    fetchOrders();
+  }, [userData?.userId]);
 
   const handleInputChange = (field, value) => {
-    setLocalUserData(prev => ({
+    setLocalUserData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
+  };
+
+  const toggleEdit = (field) => {
+    setEditingField(editingField === field ? null : field);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const auth = getAuth();
+      await signOut(auth);
+      logout(); // Call the logout function from context
+    } catch (error) {
+      Alert.alert('Logout Error', '' + error);
+    }
+  };
+
+  const renderDetailItem = (label, value, field) => (
+    <View style={styles.detailItem}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      {editingField === field ? (
+        <TextInput
+          style={styles.editInput}
+          value={String(value)}
+          onChangeText={(text) => handleInputChange(field, text)}
+          onBlur={() => toggleEdit(null)}
+          autoFocus
+          keyboardType={field === 'periodDays' || field === 'cycleDays' ? 'numeric' : 'default'}
+        />
+      ) : (
+        <View style={styles.valueContainer}>
+          <Text style={styles.detailValue}>
+            {field === 'periodDays' || field === 'cycleDays' ? `${value} days` : value}
+          </Text>
+          <TouchableOpacity onPress={() => toggleEdit(field)}>
+            <MaterialIcons name="edit" size={20} color="#E91E63" />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderOrderItem = ({ item }) => (
+    <View style={styles.orderItem}>
+      <Text style={styles.orderDate}>
+        {moment(item.timestamp?.toDate()).format('MMMM Do YYYY, h:mm a')}
+      </Text>
+      <Text style={styles.orderStatus}>{item.status}</Text>
+      <FlatList
+        data={item.items}
+        renderItem={({ item: product }) => (
+          <View style={styles.productItem}>
+            <Image source={{ uri: product.image }} style={styles.productImage} />
+            <View style={styles.productDetails}>
+              <Text style={styles.productName}>{product.name}</Text>
+              <Text style={styles.productQuantity}>Qty: {product.quantity}</Text>
+            </View>
+            <Text style={styles.productPrice}>₹{product.price.toFixed(2)}</Text>
+          </View>
+        )}
+        keyExtractor={(product, index) => `${item.id}-${index}`}
+      />
+      <Text style={styles.orderTotal}>Total: ₹{item.totalAmount}</Text>
+    </View>
+  );
+
+  const renderContent = ({ item }) => {
+    switch (item.type) {
+      case 'profile':
+        return (
+          <View style={styles.profileInfo}>
+            <Image
+              source={localUserData.profileImage || require('../assets/15.png')}
+              style={styles.profileImage}
+            />
+            <TouchableOpacity style={styles.editImageButton}>
+              <MaterialIcons name="camera-alt" size={20} color="#FFF" />
+            </TouchableOpacity>
+          </View>
+        );
+      case 'orders':
+        return (
+          <View style={styles.ordersSection}>
+            <Text style={styles.sectionTitle}>My Orders</Text>
+            {loadingOrders ? (
+              <ActivityIndicator size="large" color="#E91E63" />
+            ) : orders.length > 0 ? (
+
+              
+              <FlatList
+                data={orders}
+                inverted 
+                renderItem={renderOrderItem}
+                keyExtractor={(item) => item.id}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <Text style={styles.emptyOrdersText}>No orders yet</Text>
+            )}
+          </View>
+        );
+      case 'details':
+        return (
+          <View style={styles.detailsCard}>
+            {renderDetailItem('Name', localUserData.name, 'name')}
+            {renderDetailItem('Email', localUserData.email, 'email')}
+            {renderDetailItem('Phone', localUserData.phone, 'phone')}
+            {renderDetailItem('Address', localUserData.address, 'address')}
+          </View>
+        );
+      case 'period':
+        return (
+          <View style={styles.detailsCard}>
+            <Text style={styles.sectionTitle}>Period Information</Text>
+            {renderDetailItem('Last Period', localUserData.lastPeriodStart, 'lastPeriodStart')}
+            {renderDetailItem('Period Duration', localUserData.periodDays, 'periodDays')}
+            {renderDetailItem('Cycle Length', localUserData.cycleDays, 'cycleDays')}
+          </View>
+        );
+      case 'logout':
+        return (
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutButtonText}>Logout</Text>
+          </TouchableOpacity>
+        );
+      default:
+        return null;
+    }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#FF85A2" barStyle="light-content" />
-      
+      <StatusBar backgroundColor="#E91E63" barStyle="light-content" />
+
       <LinearGradient
-        colors={['#FF85A2', '#FFA5B9']}
+        colors={['#E91E63', '#FF4081']}
         style={styles.header}
       >
-        <TouchableOpacity 
-          style={styles.backButton} 
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
           <MaterialIcons name="arrow-back" size={24} color="#FFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Profile</Text>
-        <View style={styles.headerRight} />
+        <View style={styles.placeholder} />
       </LinearGradient>
 
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardAvoidingView}
       >
-        <ScrollView 
+        <FlatList
+          data={[
+            { key: 'profile', type: 'profile' },
+            { key: 'orders', type: 'orders' }, // Moved orders section here
+            { key: 'details', type: 'details' },
+            { key: 'period', type: 'period' },
+            { key: 'logout', type: 'logout' },
+          ]}
+          renderItem={renderContent}
+          keyExtractor={(item) => item.key}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View style={styles.profileInfo}>
-            <Image 
-              source={localUserData.profileImage || require('../assets/15.png')} 
-              style={styles.profileImage} 
-            />
-            <TouchableOpacity style={styles.editImageButton}>
-              <MaterialIcons name="edit" size={20} color="#FF85A2" />
-            </TouchableOpacity>
-          </View>
-
-          {renderInput('Name', localUserData.name, (value) => handleInputChange('name', value))}
-          {renderInput('Email', localUserData.email, (value) => handleInputChange('email', value), 'email-address')}
-          {renderInput('Phone Number', localUserData.phone, (value) => handleInputChange('phone', value), 'phone-pad')}
-          {renderInput('Address', localUserData.address, (value) => handleInputChange('address', value), 'default', true)}
-
-          <Text style={styles.sectionTitle}>Period Information</Text>
-
-          {renderInput('Last Period Start Date (YYYY-MM-DD)', 
-            localUserData.lastPeriodStart, 
-            (value) => handleInputChange('lastPeriodStart', value))}
-
-          {renderInput('Period Duration (1-10 days)', 
-            localUserData.periodDays, 
-            (value) => handleInputChange('periodDays', value), 
-            'numeric')}
-
-          {renderInput('Average Days Between Periods (21-35)', 
-            localUserData.cycleDays, 
-            (value) => handleInputChange('cycleDays', value), 
-            'numeric')}
-
-          <View style={styles.infoBox}>
-            <MaterialIcons name="info-outline" size={20} color="#FF85A2" />
-            <Text style={styles.infoText}>
-              This information helps us provide more accurate predictions and insights about your menstrual cycle.
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <LinearGradient
-              colors={['#FF85A2', '#FFA5B9']}
-              style={styles.saveButtonGradient}
-            >
-              <Text style={styles.buttonText}>Save Changes</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </ScrollView>
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
 
-const renderInput = (label, value, onChangeText, keyboardType = 'default', multiline = false) => (
-  <View style={styles.inputContainer}>
-    <Text style={styles.inputLabel}>{label}</Text>
-    <TextInput
-      style={[styles.input, multiline && styles.multilineInput]}
-      value={String(value)}
-      onChangeText={onChangeText}
-      placeholder={`Enter ${label}`}
-      keyboardType={keyboardType}
-      multiline={multiline}
-    />
-  </View>
-);
-
 const styles = StyleSheet.create({
-  // ... (previous styles remain the same)
-  
-  infoBox: {
-    flexDirection: 'row',
-    backgroundColor: '#FFF',
-    borderRadius: 15,
-    padding: 15,
-    marginTop: 20,
-    alignItems: 'center',
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  infoText: {
-    flex: 1,
-    marginLeft: 10,
-    fontSize: 14,
-    color: '#666',
-    lineHeight: 20,
-  },
-  
-  periodHistoryContainer: {
-    marginTop: 20,
-    backgroundColor: '#FFF',
-    borderRadius: 15,
-    padding: 15,
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  periodHistoryTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FF85A2',
-    marginBottom: 10,
-  },
-  periodHistoryItem: {
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#FFE4E9',
-  },
-  periodHistoryText: {
-    fontSize: 16,
-    color: '#666',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#FFF5F7',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
+    backgroundColor: '#FFF5F8',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
     paddingVertical: 16,
-    paddingHorizontal: 16,
-    ...Platform.select({
-      android: {
-        paddingTop: StatusBar.currentHeight,
-      },
-    }),
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE4EC',
   },
   headerTitle: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   backButton: {
     padding: 8,
   },
-  headerRight: {
+  placeholder: {
     width: 40,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
   },
   scrollContent: {
     padding: 20,
-    paddingBottom: 40, // Add extra padding at the bottom
   },
   profileInfo: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 20,
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     borderWidth: 3,
-    borderColor: '#FFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
+    borderColor: '#FFFFFF',
   },
   editImageButton: {
     position: 'absolute',
-    right: '32%',
+    right: '35%',
     bottom: 0,
-    backgroundColor: '#FFF',
+    backgroundColor: '#E91E63',
     borderRadius: 20,
     padding: 8,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
-  inputContainer: {
+  ordersSection: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
     marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 16,
-    color: '#FF85A2',
-    marginBottom: 8,
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#FFD1DC',
-    borderRadius: 25,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#FFF',
-    shadowColor: '#FFB6C1',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  multilineInput: {
-    height: 100,
-    textAlignVertical: 'top',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FF85A2',
-    marginTop: 30,
-    marginBottom: 20,
-  },
-  saveButton: {
-    borderRadius: 25,
-    overflow: 'hidden',
-    marginTop: 30,
-    marginBottom: 20,
-    shadowColor: '#FF85A2',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
     elevation: 5,
   },
-  saveButtonGradient: {
-    paddingVertical: 15,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D2D3A',
+    marginBottom: 16,
+  },
+  orderItem: {
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FFE4EC',
+    paddingBottom: 16,
+  },
+  orderDate: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2D2D3A',
+    marginBottom: 4,
+  },
+  orderStatus: {
+    fontSize: 14,
+    color: '#E91E63',
+    fontWeight: '500',
+    marginBottom: 12,
+  },
+  productItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  productImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 12,
+  },
+  productDetails: {
+    flex: 1,
+  },
+  productName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#2D2D3A',
+  },
+  productQuantity: {
+    fontSize: 12,
+    color: '#8F90A6',
+  },
+  productPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2D2D3A',
+  },
+  orderTotal: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#E91E63',
+    marginTop: 8,
+    textAlign: 'right',
+  },
+  emptyOrdersText: {
+    fontSize: 16,
+    color: '#8F90A6',
+    textAlign: 'center',
+    marginTop: 16,
+  },
+  detailsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  detailItem: {
+    marginBottom: 16,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: '#8F90A6',
+    marginBottom: 4,
+  },
+  valueContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  buttonText: {
-    color: '#FFF',
-    textAlign: 'center',
+  detailValue: {
+    fontSize: 16,
+    color: '#2D2D3A',
+    fontWeight: '500',
+  },
+  editInput: {
+    fontSize: 16,
+    color: '#2D2D3A',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E91E63',
+    paddingVertical: 4,
+  },
+  logoutButton: {
+    backgroundColor: '#E91E63',
+    borderRadius: 24,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  logoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
     fontWeight: '600',
-    fontSize: 18,
   },
 });
 

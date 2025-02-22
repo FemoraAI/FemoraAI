@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import React from 'react';
+import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useUser } from './context/UserContext';
@@ -8,25 +8,6 @@ import { useNavigation } from '@react-navigation/native';
 const WellnessHeader = ({}) => {
    const navigation  = useNavigation(); 
    const {userData} = useUser();
-  // Animations
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.9);
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
 
   const IconWithLabel = ({ icon, label, onPress }) => (
     <TouchableOpacity 
@@ -34,17 +15,9 @@ const WellnessHeader = ({}) => {
       style={styles.iconContainer}
       activeOpacity={0.7}
     >
-      <Animated.View
-        style={[
-          styles.iconCircle,
-          {
-            transform: [{ scale: scaleAnim }],
-            opacity: fadeAnim,
-          },
-        ]}
-      >
+      <View style={styles.iconCircle}>
         <Ionicons name={icon} size={28} color="#FF6B6B" />
-      </Animated.View>
+      </View>
       <Text style={styles.iconLabel}>{label}</Text>
     </TouchableOpacity>
   );
@@ -56,7 +29,7 @@ const WellnessHeader = ({}) => {
       end={{ x: 1, y: 1 }}
       style={styles.container}
     >
-      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+      <View style={styles.content}>
         <TouchableOpacity 
           style={styles.notificationIcon}
           activeOpacity={0.7}
@@ -81,7 +54,7 @@ const WellnessHeader = ({}) => {
             onPress={() => navigation.navigate('pres')} 
           />
         </View>
-      </Animated.View>
+      </View>
     </LinearGradient>
   );
 };

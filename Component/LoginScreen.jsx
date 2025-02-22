@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import React, { useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -11,55 +12,107 @@ import {
   Keyboard,
   TouchableWithoutFeedback
 } from 'react-native';
+
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
-import { useUser} from './context/UserContext';
+import { useUser } from './context/UserContext';
+import { app, auth, firebaseConfig, db } from '../firebase.config';
+import { CommonActions, useNavigation } from '@react-navigation/native';
+
+import { signInWithPhoneNumber, signInWithCredential, PhoneAuthProvider } from 'firebase/auth';
+import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 
 const LoginScreen = () => {
+  const navigation = useNavigation();
+  const recaptchaVerifier = React.useRef(null);
+  const { updateUserData } = useUser();
+  
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
-  const { userData, updateUserData } = useUser();
+  const [verificationId, setVerificationId] = useState('');
 
+  const checkDoctorStatus = useCallback(async (formattedPhone) => {
+    const doctorsRef = collection(db, 'doctors');
+    const doctorQuery = query(doctorsRef, where('phone', '==', formattedPhone));
+    const doctorQuerySnapshot = await getDocs(doctorQuery);
+    return !doctorQuerySnapshot.empty;
+  }, []);
 
-  const handleSendOTP = () => {
+  const checkUserExists = useCallback(async (uid) => {
+    const usersRef = collection(db, 'users');
+    const userQuery = query(usersRef, where('uid', '==', uid));
+    const userSnapshot = await getDocs(userQuery);
+    return !userSnapshot.empty;
+  }, []);
+
+  const handleSendOTP = async () => {
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
       setError('Please enter a valid 10-digit phone number');
       return;
     }
-    setOtpSent(true);
-    setError('');
+
+    try {
+      const formattedPhone = `+1${phoneNumber}`;
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
+      setVerificationId(confirmationResult.verificationId);
+      setOtpSent(true);
+      setError('');
+    } catch (error) {
+      setError('Failed to send OTP. Please try again.');
+      console.error('Send OTP error:', error);
+    }
   };
+
   const handleVerifyOTP = async () => {
     if (otp.length !== 6) {
       setError('Please enter a 6-digit OTP');
       return;
     }
-
+  
     try {
-      // Update user data with new phone and login status
-      updateUserData({
-        phone: phoneNumber,
-        isLoggedIn: true
-      });
+      const credential = PhoneAuthProvider.credential(verificationId, otp);
+      const userCredential = await signInWithCredential(auth, credential);
+      const formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
       
+      // Check doctor status
+      const isDoctor = await checkDoctorStatus(formattedPhone);
+      console.log('Doctor status:', isDoctor);
+      
+      // Check if user exists in database
+      const userExists = await checkUserExists(userCredential.user.uid);
+      
+      // Update global user context
+      await updateUserData({
+        uid: userCredential.user.uid,
+        phone: formattedPhone,
+        isLoggedIn: true,
+        isDoctor: isDoctor,
+        needsOnboarding: !isDoctor && !userExists
+      });
+
       setError('');
-      console.log('OTP verified and user logged in successfully');
     } catch (error) {
-      setError('Failed to verify OTP. Please try again.');
-      console.error('Login error:', error);
+      setError('Invalid OTP. Please try again.');
+      console.error('Verification error:', error);
     }
   };
+
   return (
     <SafeAreaView style={styles.container}>
+      <FirebaseRecaptchaVerifierModal
+        ref={recaptchaVerifier}
+        firebaseConfig={firebaseConfig}
+        attemptInvisibleVerification={true}
+      />
+
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.keyboardContainer}
         >
           <View style={styles.header}>
-            
           </View>
 
           <View style={styles.content}>
