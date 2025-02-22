@@ -19,7 +19,7 @@ import OnboardingScreens from './Component/OnboardingScreens';
 import PeriodTrackerPage from './Component/PeriodTrackerPage';
 import DoctorHomeScreen from './Component/DoctorHomepage';
 import AddPrescriptionPage from './Component/AddPrescriptionPage';
-
+import EducationalContent from './Component/EducationalContent';
 // Context Providers
 import { UserProvider, useUser } from './Component/context/UserContext';
 import { CartProvider } from './Component/context/CartContext';
@@ -74,7 +74,13 @@ const DoctorStack = () => {
     </Stack.Navigator>
   );
 };
-
+const Edu = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Eduscreen" component={EducationalContent} />
+    </Stack.Navigator>
+  );
+};
 // Tab Navigator
 const TabNavigator = () => {
   const { userData } = useUser();
@@ -107,6 +113,17 @@ const TabNavigator = () => {
           options={{
             tabBarIcon: ({ color, size }) => (
               <Icon name="medkit-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+      {!userData.isDoctor && (
+        <Tab.Screen
+          name="Edu"
+          component={Edu}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="book-outline" size={size} color={color} />
             ),
           }}
         />

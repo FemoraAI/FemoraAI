@@ -9,10 +9,8 @@ import {
   SafeAreaView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import ShopHeading from './ShopHeading';
 import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this component is correctly imported
-import { useUser } from './context/UserContext';
-import HorizontalProductList from './HorizontalProductList';
+import { useUser } from './context/UserContext'; 
 import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = () => {
@@ -22,19 +20,8 @@ const HomeScreen = () => {
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
 
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        const response = await fetch('https://your-backend-api.com/products');
-        const data = await response.json();
-        setProducts(data);
-      } catch (error) {
-        console.error('Error fetching products:', error);
-      }
-    };
 
-    fetchProducts();
-  }, []);
+
 
   const handleAddToCart = useCallback((item) => {
     setCartItems((prevItems) => ({
@@ -90,19 +77,20 @@ const HomeScreen = () => {
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
+      {/* <SymptomMoodLogger /> */}
 
+{/* 
       <ShopHeading title="FOR YOU" />
       <Text style={styles.header}>Period Pals</Text>
-      <HorizontalProductList category="pads" />
+      <HorizontalProductList category="pads" /> */}
     </>
   ), [userData.name]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-        data={products}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderProductCard}
+
+  
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.container}

@@ -11,6 +11,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import moment from 'moment';
 import { useUser } from './context/UserContext';
 import RecommendedReads from '../Component/RecommendedReads'; // Import the independent component
+import MoodLogger from './SymptomMoodLogger';
+
 
 const { width } = Dimensions.get('window');
 const CIRCLE_SIZE = width * 0.7;
@@ -171,7 +173,7 @@ const PeriodTracker = () => {
           </Text>
         </View>
       </View>
-
+        <MoodLogger/>
       {/* Recommended Reads */}
       <RecommendedReads phases={PHASES} />
     </View>
