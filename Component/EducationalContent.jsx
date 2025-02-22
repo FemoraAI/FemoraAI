@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   contentMeta: {
-    flexDirection: "row",
+    flexDirection: "row" ,
     alignItems: "center",
   },
   contentType: {
@@ -208,4 +208,4 @@ const styles = StyleSheet.create({
   },
 })
 
-export default EducationalContent
+export default EducationalContent 
