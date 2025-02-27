@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import {TouchableOpacity} from 'react-native'
+import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
@@ -20,6 +21,7 @@ import PeriodTrackerPage from './Component/PeriodTrackerPage';
 import DoctorHomeScreen from './Component/DoctorHomepage';
 import AddPrescriptionPage from './Component/AddPrescriptionPage';
 import EducationalContent from './Component/EducationalContent';
+import Community from './Component/community';
 // Context Providers
 import { UserProvider, useUser } from './Component/context/UserContext';
 import { CartProvider } from './Component/context/CartContext';
@@ -29,6 +31,57 @@ const Tab = createBottomTabNavigator();
 const RootStack = createStackNavigator();
 
 // Loading Screen Component
+const CustomTabBar = ({ state, descriptors, navigation }) => { // Add navigation prop here
+  // Remove useNavigation hook since we get navigation from props
+  return (
+    <View style={styles.tabBarContainer}>
+      {state.routes.map((route, index) => {
+        const { options } = descriptors[route.key];
+        const isFocused = state.index === index;
+        const icon = options.tabBarIcon({
+          color: isFocused ? (route.name === 'Home' ? 'white' : '#FF3366') : '#B0B0B0',
+          size: route.name === 'Home' ? 32 : 24,
+        });
+
+        const onPress = () => {
+          const event = navigation.emit({ // Now using prop navigation
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
+
+          if (!isFocused && !event.defaultPrevented) {
+            navigation.navigate(route.name);
+          }
+        };
+
+        if (route.name === 'Home') {
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={onPress}
+              style={styles.centerButton}
+            >
+              <View style={[styles.centerIcon, isFocused && styles.activeCenterIcon]}>
+                {icon}
+              </View>
+            </TouchableOpacity>
+          );
+        }
+
+        return (
+          <TouchableOpacity
+            key={route.key}
+            onPress={onPress}
+            style={styles.tabButton}
+          >
+            {icon}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
 const LoadingScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <ActivityIndicator size="large" color="#E91E63" />
@@ -81,22 +134,23 @@ const Edu = () => {
     </Stack.Navigator>
   );
 };
+const comm = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="comscreen" component={community} />
+    </Stack.Navigator>
+  );
+};
 // Tab Navigator
 const TabNavigator = () => {
   const { userData } = useUser();
   
   return (
     <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: '#FF3366',
-        tabBarInactiveTintColor: '#B0B0B0',
-        tabBarLabelStyle: { display: 'none' },
-        tabBarIconStyle: { marginBottom: -5 },
-      }}
-    >
+    initialRouteName="Home"
+    screenOptions={{ headerShown: false }}
+    tabBar={(props) => <CustomTabBar {...props} />} // Pass all props
+  >
         {!userData.isDoctor && (
         <Tab.Screen
           name="Cart"
@@ -141,11 +195,11 @@ const TabNavigator = () => {
       )}
       {!userData.isDoctor && (
         <Tab.Screen
-          name="Edu"
-          component={Edu}
+          name="communityPage"
+          component={Community}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="heart-outline" size={size} color={color} />
+              <Icon name="chatbubbles-outline" size={size} color={color} />
             ),
           }}
         />
@@ -219,25 +273,55 @@ const App = () => {
 
 // Styles
 const styles = StyleSheet.create({
-  tabBar: {
+  tabBarContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFE4EC',
+    height: 80,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     position: 'absolute',
-    bottom: 20,
+    bottom: 0,
     left: 20,
     right: 20,
-    height: 60,
-    backgroundColor: '#FFE4EC',
-    borderTopWidth: 0,
-    elevation: 5,
-    borderRadius: 20,
-    paddingBottom: 5,
+    elevation: 15,
+    shadowColor: '#E91E63',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    marginBottom: 10,
+  },
+  centerButton: {
+    top: -20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  centerIcon: {
+    backgroundColor: 'white',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius:5,
+  },
+  activeCenterIcon: {
+    backgroundColor: '#FF3366',
+    shadowColor: '#FF3366',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+  },
+  tabButton: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 60,
   },
 });
-
 export default App;
