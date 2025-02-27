@@ -97,15 +97,17 @@ const TabNavigator = () => {
         tabBarIconStyle: { marginBottom: -5 },
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="home-outline" size={size} color={color} />
-          ),
-        }}
-      />
+        {!userData.isDoctor && (
+        <Tab.Screen
+          name="Cart"
+          component={CartScreen}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="calendar-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
       {!userData.isDoctor && (
         <Tab.Screen
           name="Doctors"
@@ -117,28 +119,39 @@ const TabNavigator = () => {
           }}
         />
       )}
+       <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        options={{
+          tabBarIcon: ({ color, size }) => (
+            <Icon name="home-outline" size={size} color={color} />
+          ),
+        }}
+      />
       {!userData.isDoctor && (
         <Tab.Screen
           name="Edu"
           component={Edu}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="book-outline" size={size} color={color} />
+              <Icon name="heart-outline" size={size} color={color} />
             ),
           }}
         />
       )}
       {!userData.isDoctor && (
         <Tab.Screen
-          name="Cart"
-          component={CartScreen}
+          name="Edu"
+          component={Edu}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="cart-outline" size={size} color={color} />
+              <Icon name="heart-outline" size={size} color={color} />
             ),
           }}
         />
       )}
+      
+   
     </Tab.Navigator>
   );
 };

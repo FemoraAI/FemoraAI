@@ -21,14 +21,14 @@ const demoContent = [
     id: 1,
     title: "Understanding Your Cycle",
     type: "Article",
-    image: "https://images.pexels.com/photos/4473398/pexels-photo-4473398.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://images.pexels.com/photos/5712300/pexels-photo-5712300.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
     duration: "5 min read"
   },
   {
     id: 2,
     title: "Nutrition Guide",
     type: "Video",
-    image: "https://images.pexels.com/photos/6646918/pexels-photo-6646918.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://images.pexels.com/photos/1128678/pexels-photo-1128678.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
     duration: "10 min watch"
   },
   {
@@ -42,7 +42,7 @@ const demoContent = [
     id: 4,
     title: "Exercise Routines",
     type: "Guide",
-    image: "https://images.pexels.com/photos/6997796/pexels-photo-6997796.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://images.pexels.com/photos/14843543/pexels-photo-14843543.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2",
     duration: "15 min read"
   },
   {

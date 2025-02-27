@@ -24,7 +24,7 @@ import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 const LoginScreen = () => {
   const navigation = useNavigation();
   const recaptchaVerifier = React.useRef(null);
-  const { updateUserData } = useUser();
+  const { updateUserData } = useUser(); 
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
