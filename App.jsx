@@ -9,8 +9,10 @@ import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 // Screen Imports
 import HeaderScreen from './Component/HomeScreen';
+
 import LoginScreen from './Component/LoginScreen';
 import DoctorsScreen from './Component/DoctorsScreen';
+import CycleInsights from  './Component/CycleInsights';
 import CartScreen from './Component/CartScreen';
 import ProfileManagementScreen from './Component/ProfileManagementScreen';
 import AppointmentSchedulePage from './Component/AppointmentSchedulePage';
@@ -154,7 +156,7 @@ const TabNavigator = () => {
         {!userData.isDoctor && (
         <Tab.Screen
           name="Cart"
-          component={CartScreen}
+          component={CycleInsights}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Icon name="calendar-outline" size={size} color={color} />

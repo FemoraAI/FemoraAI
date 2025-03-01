@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingVertical: 20,
+    paddingVertical: 30,
   },
   sectionTitle: {
     fontSize: 24,
@@ -272,6 +272,7 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     marginHorizontal: 5,
+    marginBottom:10
   },
   activeDot: {
     backgroundColor: COLORS.primary,
