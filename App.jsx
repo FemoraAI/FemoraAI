@@ -6,6 +6,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Screen Imports
 import HeaderScreen from './Component/HomeScreen';
@@ -136,10 +137,10 @@ const Edu = () => {
     </Stack.Navigator>
   );
 };
-const comm = () => {
+const CommunityStack = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="comscreen" component={community} />
+      <Stack.Screen name="comscreen" component={Community} />
     </Stack.Navigator>
   );
 };
@@ -198,7 +199,7 @@ const TabNavigator = () => {
       {!userData.isDoctor && (
         <Tab.Screen
           name="communityPage"
-          component={Community}
+          component={CommunityStack}
           options={{
             tabBarIcon: ({ color, size }) => (
               <Icon name="chatbubbles-outline" size={size} color={color} />
@@ -261,15 +262,15 @@ const AuthNavigator = () => {
 // Main App Component
 const App = () => {
   return (
-    <UserProvider>
-      <CartProvider>
-        <NavigationContainer>
-          <RootStack.Navigator screenOptions={{ headerShown: false }}>
-            <RootStack.Screen name="Main" component={AuthNavigator} />
-          </RootStack.Navigator>
-        </NavigationContainer>
-      </CartProvider>
-    </UserProvider>
+    <SafeAreaProvider>
+      <UserProvider>
+        <CartProvider>
+          <NavigationContainer>
+            <AuthNavigator />
+          </NavigationContainer>
+        </CartProvider>
+      </UserProvider>
+    </SafeAreaProvider>
   );
 };
 
