@@ -303,7 +303,7 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
       comments: 0,
       isPinned: false,
       isAnonymous,
-      timestamp: new Date().toISOString(),
+      timestamp: "Just now",
     };
     
     onPost(newPost);
@@ -422,6 +422,209 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
                 >
                   <MaterialIcons name="add-photo-alternate" size={24} color="#FF85A2" />
                   <Text style={styles.addImageText}>Add Image</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.categorySelector}>
+              <Text style={styles.selectorLabel}>Category</Text>
+              <View style={styles.categoryGrid}>
+                {categories.slice(1).map((category) => (
+                  <TouchableOpacity
+                    key={category.id}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === category.name && styles.categoryChipActive
+                    ]}
+                    onPress={() => {
+                      setSelectedCategory(category.name);
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    }}
+                  >
+                    <MaterialIcons
+                      name={category.icon}
+                      size={20}
+                      color={selectedCategory === category.name ? "#FF85A2" : "#8F90A6"}
+                    />
+                    <Text style={[
+                      styles.categoryChipText,
+                      selectedCategory === category.name && styles.categoryChipTextActive
+                    ]}>
+                      {category.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.anonymousToggleContainer}>
+              <TouchableOpacity
+                style={styles.anonymousToggle}
+                onPress={() => {
+                  setIsAnonymous(!isAnonymous);
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                }}
+              >
+                <MaterialIcons
+                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
+                  size={24}
+                  color={isAnonymous ? "#FF85A2" : "#8F90A6"}
+                />
+                <Text style={styles.anonymousText}>Post Anonymously</Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </Animated.View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+};
+
+const EditPostModal = ({ visible, onClose, onEdit, post }) => {
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [isAnonymous, setIsAnonymous] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setPostTitle(post.title);
+      setPostContent(post.content);
+      setSelectedCategory(post.category);
+      setIsAnonymous(post.isAnonymous);
+      setImagePreview(post.image);
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true
+      }).start();
+    } else {
+      scaleAnim.setValue(0);
+    }
+  }, [visible, post]);
+
+  const handleEditSubmit = () => {
+    const editedPost = {
+      title: postTitle,
+      content: postContent,
+      category: selectedCategory || post.category,
+      image: imagePreview,
+      isAnonymous,
+      author: isAnonymous ? "Anonymous" : "Current User",
+    };
+    
+    onEdit(editedPost);
+  };
+
+  const handleImagePick = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setSelectedImage(result.assets[0].uri);
+        setImagePreview(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.log('Error picking image:', error);
+    }
+  };
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.newPostModalOverlay}
+      >
+        <Animated.View 
+          style={[
+            styles.newPostModalContent,
+            {
+              transform: [{ scale: scaleAnim }]
+            }
+          ]}
+        >
+          <View style={styles.newPostHeader}>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <MaterialIcons name="close" size={24} color="#8F90A6" />
+            </TouchableOpacity>
+            <Text style={styles.newPostTitle}>Edit Post</Text>
+            <TouchableOpacity 
+              style={[styles.postButton, !postTitle || !postContent ? styles.postButtonDisabled : null]}
+              onPress={handleEditSubmit}
+              disabled={!postTitle || !postContent}
+            >
+              <Text style={[styles.postButtonText, !postTitle || !postContent ? styles.postButtonTextDisabled : null]}>
+                Save
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView 
+            style={styles.newPostForm}
+            bounces={false}
+            contentContainerStyle={styles.newPostFormContent}
+          >
+            <View style={styles.formSection}>
+              <TextInput
+                style={styles.titleInput}
+                placeholder="Write an engaging title..."
+                placeholderTextColor="#B4B4BE"
+                value={postTitle}
+                onChangeText={setPostTitle}
+                maxLength={100}
+              />
+
+              <TextInput
+                style={styles.contentInput}
+                placeholder="Share your thoughts, experiences, or ask for advice..."
+                placeholderTextColor="#B4B4BE"
+                value={postContent}
+                onChangeText={setPostContent}
+                multiline
+                textAlignVertical="top"
+              />
+
+              <View style={styles.imageContainer}>
+                {imagePreview && (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image 
+                      source={{ uri: imagePreview }} 
+                      style={styles.imagePreview}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity 
+                      style={styles.removeImageButton}
+                      onPress={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      }}
+                    >
+                      <MaterialIcons name="close" size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                <TouchableOpacity
+                  style={styles.addImageButton}
+                  onPress={handleImagePick}
+                >
+                  <MaterialIcons name="add-photo-alternate" size={24} color="#FF85A2" />
+                  <Text style={styles.addImageText}>Change Image</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -719,11 +922,20 @@ const CommentModal = ({ visible, onClose, postId }) => {
 
 const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, setPosts }) => {
   const [showComments, setShowComments] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const likeAnimation = useRef(new Animated.Value(1)).current;
 
   const handleDelete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setPosts(prevPosts => prevPosts.filter(post => post.id !== item.id));
+  };
+
+  const handleEdit = (editedPost) => {
+    setPosts(prevPosts => prevPosts.map(post => 
+      post.id === item.id ? { ...post, ...editedPost } : post
+    ));
+    setShowEditModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
@@ -807,13 +1019,21 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
           <MaterialIcons name="share" size={20} color="#8F90A6" />
         </TouchableOpacity>
 
-        {item.author === "Current User" && (
-          <TouchableOpacity 
-            style={[styles.footerButton, styles.deleteButton, { marginLeft: 'auto' }]}
-            onPress={handleDelete}
-          >
-            <MaterialIcons name="delete" size={20} color="#999aa8" />
-          </TouchableOpacity>
+        {(item.author === "Current User" || (item.isAnonymous && item.timestamp === "Just now")) && (
+          <>
+            <TouchableOpacity 
+              style={[styles.footerButton, { marginLeft: 'auto' }]}
+              onPress={() => setShowEditModal(true)}
+            >
+              <MaterialIcons name="edit" size={20} color="#999aa8" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.footerButton, styles.deleteButton]}
+              onPress={handleDelete}
+            >
+              <MaterialIcons name="delete" size={20} color="#999aa8" />
+            </TouchableOpacity>
+          </>
         )}
       </View>
 
@@ -821,6 +1041,13 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
         visible={showComments}
         onClose={() => setShowComments(false)}
         postId={item.id}
+      />
+
+      <EditPostModal
+        visible={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onEdit={handleEdit}
+        post={item}
       />
     </Animated.View>
   );
@@ -940,6 +1167,9 @@ const Community = () => {
   const handleNewPost = (newPost) => {
     const post = {
       ...newPost,
+      author: newPost.isAnonymous ? "Anonymous" : "Current User",
+      isAnonymous: newPost.isAnonymous,
+      timestamp: "Just now",
     };
     setPosts(prevPosts => [post, ...prevPosts]);
   };
@@ -1818,6 +2048,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  joinedCommunityButton: {
+    backgroundColor: '#8F90A6',
+    shadowColor: '#8F90A6',
+  },
   joinButtonText: {
     color: '#ffffff',
     fontSize: 14,
@@ -1825,37 +2059,6 @@ const styles = StyleSheet.create({
   },
   joinedButtonText: {
     color: '#ffffff',
-  },
-  reactionSelector: {
-    position: 'absolute',
-    bottom: '100%',
-    left: 0,
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  reactionOption: {
-    alignItems: 'center',
-    marginHorizontal: 8,
-  },
-  reactionIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  reactionLabel: {
-    fontSize: 10,
-    color: '#8F90A6',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   deleteButton: {
     padding: 8,
