@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import {TouchableOpacity} from 'react-native'
+import {TouchableOpacity, Platform} from 'react-native'
 import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -191,7 +192,7 @@ const TabNavigator = () => {
           component={Edu}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="heart-outline" size={size} color={color} />
+              <MaterialCommunityIcons name="meditation" size={size+5} color={color} />
             ),
           }}
         />
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#FFE4EC',
-    height: 80,
+    height: 90,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     position: 'absolute',
@@ -293,25 +294,27 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    marginBottom: 10,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 15,
+    paddingTop: 5,
+    marginBottom: 0,
   },
   centerButton: {
-    top: -20,
+    top: -25,
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerIcon: {
     backgroundColor: 'white',
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
-    shadowRadius:5,
+    shadowRadius: 5,
   },
   activeCenterIcon: {
     backgroundColor: '#FF3366',
@@ -324,7 +327,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    height: 60,
+    height: 50,
+    paddingBottom: Platform.OS === 'ios' ? 15 : 10,
   },
 });
 export default App;

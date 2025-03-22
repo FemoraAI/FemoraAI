@@ -3,6 +3,8 @@ import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore } from "firebase/firestore";
 import { getDatabase } from 'firebase/database';
+import { getFunctions } from "firebase/functions";
+
 
 
 export const firebaseConfig = {
@@ -25,6 +27,7 @@ export const auth = initializeAuth(app, {
     // Ensure we're not initializing multiple instances
     popupRedirectResolver: undefined
 });
+export const functions = getFunctions(app);
 
 export const db = getFirestore(app);
 export const database = getDatabase(app);

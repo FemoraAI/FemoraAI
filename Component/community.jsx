@@ -693,14 +693,14 @@ const ReactionAnimation = ({ emoji, onComplete }) => {
         Animated.parallel([
           Animated.timing(value, {
             toValue: 1,
-            duration: 500,
+            duration: 150,
             useNativeDriver: true
           }),
           Animated.sequence([
             Animated.delay(200),
             Animated.timing(value, {
               toValue: 0,
-              duration: 300,
+              duration: 150,
               useNativeDriver: true
             })
           ])
@@ -923,7 +923,76 @@ const CommentModal = ({ visible, onClose, postId }) => {
 const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, setPosts }) => {
   const [showComments, setShowComments] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showHeartAnimation, setShowHeartAnimation] = useState(false);
+  const [heartPosition, setHeartPosition] = useState({ x: 0, y: 0 });
   const likeAnimation = useRef(new Animated.Value(1)).current;
+  const heartScale = useRef(new Animated.Value(0)).current;
+  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const lastTap = useRef(null);
+
+  const handleDoubleTap = (event) => {
+    const now = Date.now();
+    const DOUBLE_PRESS_DELAY = 300;
+    
+    if (lastTap.current && (now - lastTap.current) < DOUBLE_PRESS_DELAY) {
+      if (!likedPosts[item.id]) {
+        // Get tap coordinates
+        setHeartPosition({
+          x: event.nativeEvent.locationX,
+          y: event.nativeEvent.locationY
+        });
+        
+        // Show and animate the heart
+        setShowHeartAnimation(true);
+        Animated.sequence([
+          Animated.parallel([
+            Animated.spring(heartScale, {
+              toValue: 1,
+              friction: 3,
+              useNativeDriver: true
+            }),
+            Animated.spring(heartOpacity, {
+              toValue: 1,
+              friction: 3,
+              useNativeDriver: true
+            })
+          ]),
+          Animated.delay(200),
+          Animated.parallel([
+            Animated.timing(heartScale, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true
+            }),
+            Animated.timing(heartOpacity, {
+              toValue: 0,
+              duration: 150,
+              useNativeDriver: true
+            })
+          ])
+        ]).start(() => {
+          setShowHeartAnimation(false);
+          heartScale.setValue(0);
+          heartOpacity.setValue(0);
+        });
+
+        handleLike(item.id);
+        Animated.sequence([
+          Animated.timing(likeAnimation, {
+            toValue: 1.5,
+            duration: 100,
+            useNativeDriver: true
+          }),
+          Animated.timing(likeAnimation, {
+            toValue: 1,
+            duration: 100,
+            useNativeDriver: true
+          })
+        ]).start();
+      }
+    }
+    lastTap.current = now;
+  };
 
   const handleDelete = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -955,100 +1024,121 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
         }
       ]}
     >
-      <View style={styles.postHeader}>
-        <View style={styles.authorContainer}>
-          {item.isAnonymous ? (
-            <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
-          ) : (
-            <Image
-              source={{ uri: 'https://i.pravatar.cc/150?img=' + item.id }}
-              style={styles.authorAvatar}
-            />
-          )}
-          <View>
-            <Text style={styles.authorName}>{item.author}</Text>
-            <Text style={styles.timestamp}>{item.timestamp}</Text>
-          </View>
-        </View>
-        <View style={styles.headerActions}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{item.category}</Text>
-          </View>
-        </View>
-      </View>
-
-      <Text style={styles.postTitle}>{item.title}</Text>
-      <Text style={styles.postContent}>{item.content}</Text>
-
-      {item.image && (
-        <View style={styles.postImageContainer}>
-          <Image 
-            source={{ uri: item.image }} 
-            style={styles.postImage}
-            resizeMode="cover"
-          />
-        </View>
-      )}
-
-      <View style={styles.postFooter}>
-        <TouchableOpacity 
-          style={styles.footerButton}
-          onPress={() => handleLike(item.id)}
-        >
-          <Animated.View style={{ transform: [{ scale: likeAnimation }] }}>
-            <MaterialIcons 
-              name={likedPosts[item.id] ? "favorite" : "favorite-border"} 
-              size={20} 
-              color={likedPosts[item.id] ? "#FF85A2" : "#8F90A6"} 
-            />
+      <TouchableOpacity 
+        activeOpacity={1}
+        onPress={(event) => handleDoubleTap(event)}
+        style={{ flex: 1 }}
+      >
+        {showHeartAnimation && (
+          <Animated.View
+            style={[
+              styles.heartAnimationContainer,
+              {
+                left: heartPosition.x - 50,
+                top: heartPosition.y - 25,
+                transform: [{ scale: heartScale }],
+                opacity: heartOpacity
+              }
+            ]}
+          >
+            <MaterialIcons name="favorite" size={100} color="#FF85A2" />
           </Animated.View>
-          <Text style={[styles.footerButtonText, likedPosts[item.id] && styles.footerButtonTextActive]}>
-            {item.likes}
-          </Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.footerButton}
-          onPress={() => setShowComments(true)}
-        >
-          <MaterialIcons name="chat-bubble-outline" size={20} color="#8F90A6" />
-          <Text style={styles.footerButtonText}>{item.comments}</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.footerButton}>
-          <MaterialIcons name="share" size={20} color="#8F90A6" />
-        </TouchableOpacity>
-
-        {(item.author === "Current User" || (item.isAnonymous && item.timestamp === "Just now")) && (
-          <>
-            <TouchableOpacity 
-              style={[styles.footerButton, { marginLeft: 'auto' }]}
-              onPress={() => setShowEditModal(true)}
-            >
-              <MaterialIcons name="edit" size={20} color="#999aa8" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.footerButton, styles.deleteButton]}
-              onPress={handleDelete}
-            >
-              <MaterialIcons name="delete" size={20} color="#999aa8" />
-            </TouchableOpacity>
-          </>
         )}
-      </View>
+        <View style={styles.postHeader}>
+          <View style={styles.authorContainer}>
+            {item.isAnonymous ? (
+              <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
+            ) : (
+              <Image
+                source={{ uri: 'https://i.pravatar.cc/150?img=' + item.id }}
+                style={styles.authorAvatar}
+              />
+            )}
+            <View>
+              <Text style={styles.authorName}>{item.author}</Text>
+              <Text style={styles.timestamp}>{item.timestamp}</Text>
+            </View>
+          </View>
+          <View style={styles.headerActions}>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{item.category}</Text>
+            </View>
+          </View>
+        </View>
 
-      <CommentModal
-        visible={showComments}
-        onClose={() => setShowComments(false)}
-        postId={item.id}
-      />
+        <Text style={styles.postTitle}>{item.title}</Text>
+        <Text style={styles.postContent}>{item.content}</Text>
 
-      <EditPostModal
-        visible={showEditModal}
-        onClose={() => setShowEditModal(false)}
-        onEdit={handleEdit}
-        post={item}
-      />
+        {item.image && (
+          <View style={styles.postImageContainer}>
+            <Image 
+              source={{ uri: item.image }} 
+              style={styles.postImage}
+              resizeMode="cover"
+            />
+          </View>
+        )}
+
+        <View style={styles.postFooter}>
+          <TouchableOpacity 
+            style={styles.footerButton}
+            onPress={() => handleLike(item.id)}
+          >
+            <Animated.View style={{ transform: [{ scale: likeAnimation }] }}>
+              <MaterialIcons 
+                name={likedPosts[item.id] ? "favorite" : "favorite-border"} 
+                size={24} 
+                color={likedPosts[item.id] ? "#FF85A2" : "#8F90A6"} 
+              />
+            </Animated.View>
+            <Text style={[styles.footerButtonText, likedPosts[item.id] && styles.footerButtonTextActive]}>
+              {item.likes}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.footerButton}
+            onPress={() => setShowComments(true)}
+          >
+            <MaterialIcons name="chat-bubble-outline" size={20} color="#8F90A6" />
+            <Text style={styles.footerButtonText}>{item.comments}</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.footerButton}>
+            <MaterialIcons name="share" size={20} color="#8F90A6" />
+          </TouchableOpacity>
+
+          {(item.author === "Current User" || (item.isAnonymous && item.timestamp === "Just now")) && (
+            <>
+              <TouchableOpacity 
+                style={[styles.footerButton, { marginLeft: 'auto' }]}
+                onPress={() => setShowEditModal(true)}
+              >
+                <MaterialIcons name="edit" size={20} color="#999aa8" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.footerButton, styles.deleteButton]}
+                onPress={handleDelete}
+              >
+                <MaterialIcons name="delete" size={20} color="#999aa8" />
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        <CommentModal
+          visible={showComments}
+          onClose={() => setShowComments(false)}
+          postId={item.id}
+        />
+
+        <EditPostModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          onEdit={handleEdit}
+          post={item}
+        />
+      </TouchableOpacity>
     </Animated.View>
   );
 });
@@ -1096,10 +1186,9 @@ const Community = () => {
     setPosts(prevPosts => 
       prevPosts.map(post => {
         if (post.id === postId) {
-          const newLikes = post.likes + (likedPosts[postId] ? -2 : 2);
           return {
             ...post,
-            likes: newLikes
+            likes: post.likes + (likedPosts[postId] ? -2 : 2)
           };
         }
         return post;
@@ -1175,17 +1264,20 @@ const Community = () => {
   };
 
   const sortPosts = useCallback((postsToSort) => {
-    switch(sortBy) {
-      case 'new':
-        return [...postsToSort].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      case 'hot':
-        return [...postsToSort].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments));
-      case 'top':
-        return [...postsToSort].sort((a, b) => b.likes - a.likes);
-      default:
-        return postsToSort;
+    if (isRefreshing) {
+      switch(sortBy) {
+        case 'new':
+          return [...postsToSort].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        case 'hot':
+          return [...postsToSort].sort((a, b) => (b.likes + b.comments) - (a.likes + a.comments));
+        case 'top':
+          return [...postsToSort].sort((a, b) => b.likes - a.likes);
+        default:
+          return postsToSort;
+      }
     }
-  }, [sortBy]);
+    return postsToSort;
+  }, [sortBy, isRefreshing]);
 
   useEffect(() => {
     if (showWelcomeModal) {
@@ -1574,11 +1666,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginRight: 16,
+    padding: 8,
   },
   footerButtonText: {
-    marginLeft: 4,
+    marginLeft: 6,
     color: '#8F90A6',
-    fontSize: 14,
+    fontSize: 15,
   },
   footerButtonTextActive: {
     color: '#FF85A2',
@@ -2071,6 +2164,14 @@ const styles = StyleSheet.create({
   newPostFormContent: {
     paddingBottom: 40,
     },
+  heartAnimationContainer: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
 });
 
 export default Community;

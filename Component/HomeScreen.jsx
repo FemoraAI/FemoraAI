@@ -6,8 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  SafeAreaView,
+  Platform,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this component is correctly imported
 import { useUser } from './context/UserContext'; 
@@ -19,9 +22,6 @@ const HomeScreen = () => {
 
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
-
-
-
 
   const handleAddToCart = useCallback((item) => {
     setCartItems((prevItems) => ({
@@ -63,89 +63,147 @@ const HomeScreen = () => {
 
   const renderHeader = useCallback(() => (
     <>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{userData.name}</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{userData.name || 'User'}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.profileButton} 
+              onPress={() => navigation.navigate('ProfileManagement')}
+            >
+              {userData.profilePic ? (
+                <Image 
+                  source={{ uri: userData.profilePic }} 
+                  style={styles.profileImage} 
+                />
+              ) : (
+                <View style={styles.defaultAvatarContainer}>
+                  <Icon name="person" size={24} color="#FF6B6B" />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity style={styles.profileIcon} onPress={() => navigation.navigate('ProfileManagement')}>
-          <Icon name="person-outline" size={24} color="#FF3366" />
-        </TouchableOpacity>
       </View>
-
-      {/* Circular Tracker Replacing Period Tracker */}
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
-      {/* <SymptomMoodLogger /> */}
-
-{/* 
-      <ShopHeading title="FOR YOU" />
-      <Text style={styles.header}>Period Pals</Text>
-      <HorizontalProductList category="pads" /> */}
     </>
-  ), [userData.name]);
+  ), [userData.name, userData.profilePic]);
+
+  const renderQuickActions = useCallback(() => (
+    <View style={styles.quickActionsContainer}>
+      {/* Empty container kept for future use if needed */}
+    </View>
+  ), [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <LinearGradient
+      colors={['#FFE5E5', '#FFD4D4', '#FFC2C2']}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+    >
       <FlatList
-
-  
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.container}
+        bounces={false}
+        overScrollMode="never"
+        decelerationRate="normal"
+        scrollEventThrottle={16}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={5}
+        onEndReachedThreshold={0.5}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
-    </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  gradient: {
     flex: 1,
-    backgroundColor: '#FFF5F7',
+    height: Dimensions.get('window').height + (Platform.OS === 'ios' ? 50 : StatusBar.currentHeight),
   },
   container: {
     paddingHorizontal: 10,
     paddingBottom: 20,
   },
+  headerContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    paddingTop: Platform.OS === 'ios' ? 45 : StatusBar.currentHeight + 10,
+    paddingBottom: 20,
+    marginBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   header: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginTop: 25,
-    fontWeight: 'bold',
-    color: 'grey',
-    fontSize: 18,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 5,
     marginBottom: 10,
   },
   welcomeText: {
     fontSize: 16,
     color: '#8E8D8A',
+    fontFamily: 'Montserrat Alternates Regular',
+    marginBottom: 4,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: 'regular',
-    color: '#8E8D8A',
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#FF6B6B',
     fontFamily: 'Montserrat Alternates Regular',
   },
-  profileIcon: {
-    padding: 10,
-    alignSelf: 'flex-end',
-    marginTop: -40,
+  profileButton: {
+    height: 42,
+    width: 42,
+    borderRadius: 21,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFD4D4',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+  },
+  profileImage: {
+    height: '100%',
+    width: '100%',
+  },
+  defaultAvatarContainer: {
+    height: '100%',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   circularTrackerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   productCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
     elevation: 2,
     marginRight: 15,
     padding: 10,
     width: 120,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
   },
   productImage: {
     width: '100%',
@@ -171,7 +229,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   quantityButton: {
-    backgroundColor: '#FAD4D8',
+    backgroundColor: 'rgba(250, 212, 216, 0.8)',
     borderRadius: 5,
     padding: 5,
     width: 30,
@@ -185,6 +243,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8D8A',
     marginHorizontal: 5,
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 60,
+    paddingVertical: 15,
+    marginBottom: 25,
   },
 });
 
