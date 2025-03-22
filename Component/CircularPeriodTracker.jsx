@@ -101,11 +101,17 @@ const CircularPeriodTracker = ({
   return (
     <>
       <View style={styles.monthTabsContainer}>
-        <TouchableOpacity onPress={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}>
+        <TouchableOpacity 
+          onPress={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}
+          style={styles.arrowButton}
+        >
           <MaterialIcons name="chevron-left" size={28} color={COLORS.primary} />
         </TouchableOpacity>
         <Text style={styles.monthText}>{selectedMonth.format('MMMM YYYY')}</Text>
-        <TouchableOpacity onPress={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}>
+        <TouchableOpacity 
+          onPress={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}
+          style={styles.arrowButton}
+        >
           <MaterialIcons name="chevron-right" size={28} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -149,6 +155,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 15,
+  },
+  arrowButton: {
+    padding: 15,  // Increased touch area
+    marginHorizontal: -5, // Negative margin to maintain visual spacing
   },
   monthText: {
     fontSize: 20,

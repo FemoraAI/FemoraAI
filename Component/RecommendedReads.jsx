@@ -78,7 +78,7 @@ const RecommendedReads = () => {
   const scrollViewRef = useRef(null);
 
   // Calculate card width including margin
-  const CARD_WIDTH = width * 0.7;
+  const CARD_WIDTH = width * 0.85;
   const CARD_MARGIN = 16;
   const ITEM_SIZE = CARD_WIDTH + CARD_MARGIN;
 
@@ -202,28 +202,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingVertical: 30,
+    paddingTop: 15,
+    paddingBottom: 90, // Match the bottom nav bar height
   },
   sectionTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.text,
     textAlign: 'left',
-    margin: 20,
+    marginVertical: 15,
+    marginHorizontal: 20,
   },
   articlesContainer: {
     paddingHorizontal: width * 0.075,
-    paddingBottom: 20,
+    paddingBottom: 15,
     alignItems: 'center',
   },
   articleCardContainer: {
-    width: width * 0.7,
+    width: width * 0.85,
     marginRight: 16,
   },
   articleCard: {
     backgroundColor: COLORS.cardBg,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,  // Increased border radius
+    padding: 20,      // Increased padding
     shadowColor: COLORS.text,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -266,6 +268,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 0,
+    marginBottom: 15,
   },
   dot: {
     width: 8,

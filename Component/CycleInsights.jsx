@@ -15,7 +15,7 @@ import { useUser } from './context/UserContext';
 import MonthSelector from '../Component/MonthSelector';
 import CycleCalendar from '../Component/CycleCalendar';
 import StatusCard from '../Component/StatusCard';
-import ReportCard from '../Component/ReportCard';
+import AIInsightsContainer from '../Component/AIInsightsContainer';
 import SymptomDrawer from '../Component/SymptomDrawer';
 import CalendarLegend from '../Component/CalendarLegend ';
 // Import utils and constants
@@ -193,25 +193,45 @@ const CycleHealthTracking = () => {
     setDrawerVisible(false);
   };
 
-  const getAIGeneratedReport = () => {
-    // In a real app, this would be generated based on user data
+  const getAIGeneratedInsights = () => {
     const phase = getCurrentPhase(selectedDate, userData);
     
-    return {
-      title: "AI-Generated Insights",
-      subtitle: phase.name,
-      insights: [
-        "Your energy levels may be lower during this phase",
-        "Consider gentle exercise like yoga or walking",
-        "Hydration is especially important now",
+    // Customize insights based on the phase
+    const phaseInsights = {
+      'Menstrual Phase': [
+        "Take it easy and rest when needed",
+        "Stay hydrated and warm",
+        "Light exercise like walking or yoga"
       ],
+      'Follicular Phase': [
+        "Energy levels are rising",
+        "Great time for new projects",
+        "Focus on strength training"
+      ],
+      'Ovulation Phase': [
+        "Peak energy and confidence",
+        "Ideal for social activities",
+        "Perfect for high-intensity workouts"
+      ],
+      'Luteal Phase': [
+        "Practice self-care routines",
+        "Maintain balanced nutrition",
+        "Listen to your body's needs"
+      ]
     };
+
+    return phaseInsights[phase.name] || [
+      "Track your symptoms daily",
+      "Stay consistent with routines",
+      "Monitor your cycle patterns"
+    ];
   };
 
   const calendarData = generateCalendarData(selectedMonth, userData, symptomLogs, selectedDate);
   const periodStatus = calculatePeriodStatus(userData, cycleLength, periodLength, isInPeriod);
-  const report = getAIGeneratedReport();
-  const isPeriodDay = getCurrentPhase(selectedDate, userData).name === 'Menstrual Phase';
+  const insights = getAIGeneratedInsights();
+  const currentPhase = getCurrentPhase(selectedDate, userData);
+  const isPeriodDay = currentPhase.name === 'Menstrual Phase';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -247,10 +267,9 @@ const CycleHealthTracking = () => {
           <View style={styles.emptyContainer} />
         </View>
 
-        <ReportCard 
-          title={report.title}
-          subtitle={report.subtitle}
-          insights={report.insights}
+        <AIInsightsContainer 
+          insights={insights}
+          phase={currentPhase}
         />
       </ScrollView>
       

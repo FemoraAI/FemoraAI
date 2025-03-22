@@ -6,8 +6,11 @@ import {
   TouchableOpacity,
   FlatList,
   Image,
-  SafeAreaView,
+  Platform,
+  StatusBar,
+  Dimensions,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
 import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this component is correctly imported
 import { useUser } from './context/UserContext'; 
@@ -65,54 +68,99 @@ const HomeScreen = () => {
           <View style={styles.headerContent}>
             <View>
               <Text style={styles.welcomeText}>Welcome back,</Text>
-              <Text style={styles.userName}>{userData.name}</Text>
+              <Text style={styles.userName}>{userData.name || 'User'}</Text>
             </View>
             <TouchableOpacity 
               style={styles.profileButton} 
               onPress={() => navigation.navigate('ProfileManagement')}
             >
-              <Image 
-                source={{ uri: userData.profilePic || 'https://via.placeholder.com/40' }} 
-                style={styles.profileImage} 
-              />
+              {userData.profilePic ? (
+                <Image 
+                  source={{ uri: userData.profilePic }} 
+                  style={styles.profileImage} 
+                />
+              ) : (
+                <View style={styles.defaultAvatarContainer}>
+                  <Icon name="person" size={24} color="#FF6B6B" />
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.sosButton]}
+              onPress={() => navigation.navigate('Emergency')}
+            >
+              <View style={[styles.actionIconContainer, styles.sosIconContainer]}>
+                <Icon name="warning" size={28} color="#FFF" />
+              </View>
+              <Text style={[styles.actionText, styles.sosText]}>SOS</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.actionButton}>
+              <View style={styles.actionIconContainer}>
+                <Icon name="journal" size={24} color="#FF6B6B" />
+              </View>
+              <Text style={styles.actionText}>Journal</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
     </>
-  ), [userData.name]);
+  ), [userData.name, userData.profilePic]);
+
+  const renderQuickActions = useCallback(() => (
+    <View style={styles.quickActionsContainer}>
+      {/* Empty container kept for future use if needed */}
+    </View>
+  ), [navigation]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <LinearGradient
+      colors={['#FFE5E5', '#FFD4D4', '#FFC2C2']}
+      style={styles.gradient}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
+    >
       <FlatList
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.container}
+        bounces={false}
+        overScrollMode="never"
+        decelerationRate="normal"
+        scrollEventThrottle={16}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        initialNumToRender={5}
+        onEndReachedThreshold={0.5}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
-    </SafeAreaView>
+    </LinearGradient>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
+  gradient: {
     flex: 1,
-    backgroundColor: '#FFF5F7',
+    height: Dimensions.get('window').height + (Platform.OS === 'ios' ? 50 : StatusBar.currentHeight),
   },
   container: {
     paddingHorizontal: 10,
     paddingBottom: 20,
   },
   headerContainer: {
-    backgroundColor: '#FFF5F7',
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
-    paddingTop: 20,
-    paddingBottom: 30,
-    marginBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 45 : StatusBar.currentHeight + 10,
+    paddingBottom: 20,
+    marginBottom: 15,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -121,46 +169,59 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
+    paddingTop: 10,
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 5,
+    marginBottom: 10,
   },
   welcomeText: {
     fontSize: 16,
     color: '#8E8D8A',
     fontFamily: 'Montserrat Alternates Regular',
+    marginBottom: 4,
   },
   userName: {
-    fontSize: 24,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#FF6B6B',
     fontFamily: 'Montserrat Alternates Regular',
   },
   profileButton: {
-    height: 40,
-    width: 40,
-    borderRadius: 20,
+    height: 42,
+    width: 42,
+    borderRadius: 21,
     overflow: 'hidden',
     borderWidth: 2,
     borderColor: '#FFD4D4',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
   },
   profileImage: {
     height: '100%',
     width: '100%',
   },
+  defaultAvatarContainer: {
+    height: '100%',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   circularTrackerContainer: {
     paddingHorizontal: 20,
   },
   productCard: {
-    backgroundColor: '#FFF',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
     borderRadius: 10,
     elevation: 2,
     marginRight: 15,
     padding: 10,
     width: 120,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
   },
   productImage: {
     width: '100%',
@@ -186,7 +247,7 @@ const styles = StyleSheet.create({
     marginTop: 5,
   },
   quantityButton: {
-    backgroundColor: '#FAD4D8',
+    backgroundColor: 'rgba(250, 212, 216, 0.8)',
     borderRadius: 5,
     padding: 5,
     width: 30,
@@ -200,6 +261,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#8E8D8A',
     marginHorizontal: 5,
+  },
+  quickActionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 60,
+    paddingVertical: 15,
+    marginBottom: 25,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    width: '100%',
+    paddingVertical: 5,
+  },
+  actionButton: {
+    alignItems: 'center',
+    width: 80,
+  },
+  sosButton: {
+    width: 80,
+    transform: [{ scale: 1.1 }],
+  },
+  actionIconContainer: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  sosIconContainer: {
+    backgroundColor: '#FF4747',
+    shadowColor: '#FF4747',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  actionText: {
+    fontSize: 12,
+    color: '#666',
+    fontFamily: 'Montserrat Alternates Regular',
+  },
+  sosText: {
+    color: '#FF4747',
+    fontWeight: '700',
+    fontSize: 13,
   },
 });
 

@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../Component/colors';
+import Droplet from './Droplet';
 
 // Phase colors - matching the ones you'd use in the app
 const PHASE_COLORS = {
-  menstrual: '#FFCDD2',  // Red for menstrual phase
+  menstrual: '#FF4D4D',  // Red for menstrual phase - matching calendar droplet
   follicular: '#FF9F7F', // Orange for follicular phase
   ovulation: '#E1BEE7',  // Yellow/gold for ovulation phase
   luteal: '#B19CD9',     // Purple for luteal phase
@@ -12,7 +13,7 @@ const PHASE_COLORS = {
 
 const CalendarLegend = () => {
   const legendItems = [
-    { color: PHASE_COLORS.menstrual, label: 'Menstrual Phase' },
+    { color: PHASE_COLORS.menstrual, label: 'Menstrual Phase', isDroplet: true },
     { color: PHASE_COLORS.ovulation, label: 'Ovulation Phase' },
     { color: COLORS.accent || '#4CAF50', label: 'Today' },
     { color: COLORS.primary || '#2196F3', label: 'Selected Date', border: true }
@@ -20,17 +21,20 @@ const CalendarLegend = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Calendar Legend</Text>
       <View style={styles.legendContainer}>
         {legendItems.map((item, index) => (
           <View key={index} style={styles.legendItem}>
-            <View 
-              style={[
-                styles.colorIndicator, 
-                { backgroundColor: item.color },
-                item.border && styles.withBorder
-              ]} 
-            />
+            {item.isDroplet ? (
+              <Droplet size={14} color={item.color} />
+            ) : (
+              <View 
+                style={[
+                  styles.colorIndicator, 
+                  { backgroundColor: item.color },
+                  item.border && styles.withBorder
+                ]} 
+              />
+            )}
             <Text style={styles.legendText}>{item.label}</Text>
           </View>
         ))}
@@ -42,45 +46,40 @@ const CalendarLegend = () => {
 const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
-    marginVertical: 12,
-    padding: 12,
+    marginVertical: 8,
+    padding: 8,
     backgroundColor: COLORS.white || '#FFFFFF',
-    borderRadius: 10,
-    elevation: 2,
+    borderRadius: 8,
+    elevation: 1,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: COLORS.text || '#333333',
+    shadowRadius: 1,
   },
   legendContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
     width: '48%',
-    marginBottom: 8,
+    marginVertical: 4,
   },
   colorIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     marginRight: 8,
   },
   withBorder: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.border || '#DDDDDD',
   },
   legendText: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.text || '#333333',
   }
 });
