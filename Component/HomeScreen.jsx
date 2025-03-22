@@ -20,9 +20,6 @@ const HomeScreen = () => {
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
 
-
-
-
   const handleAddToCart = useCallback((item) => {
     setCartItems((prevItems) => ({
       ...prevItems,
@@ -63,34 +60,35 @@ const HomeScreen = () => {
 
   const renderHeader = useCallback(() => (
     <>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{userData.name}</Text>
+      <View style={styles.headerContainer}>
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
+            <View>
+              <Text style={styles.welcomeText}>Welcome back,</Text>
+              <Text style={styles.userName}>{userData.name}</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.profileButton} 
+              onPress={() => navigation.navigate('ProfileManagement')}
+            >
+              <Image 
+                source={{ uri: userData.profilePic || 'https://via.placeholder.com/40' }} 
+                style={styles.profileImage} 
+              />
+            </TouchableOpacity>
+          </View>
         </View>
-        <TouchableOpacity style={styles.profileIcon} onPress={() => navigation.navigate('ProfileManagement')}>
-          <Icon name="person-outline" size={24} color="#FF3366" />
-        </TouchableOpacity>
       </View>
 
-      {/* Circular Tracker Replacing Period Tracker */}
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
-      {/* <SymptomMoodLogger /> */}
-
-{/* 
-      <ShopHeading title="FOR YOU" />
-      <Text style={styles.header}>Period Pals</Text>
-      <HorizontalProductList category="pads" /> */}
     </>
   ), [userData.name]);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <FlatList
-
-  
         ListHeaderComponent={renderHeader}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.container}
@@ -108,35 +106,52 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingBottom: 20,
   },
+  headerContainer: {
+    backgroundColor: '#FFF5F7',
+    borderBottomLeftRadius: 25,
+    borderBottomRightRadius: 25,
+    paddingTop: 20,
+    paddingBottom: 30,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   header: {
-    flexDirection: 'column',
-    alignItems: 'flex-start',
-    marginTop: 25,
-    fontWeight: 'bold',
-    color: 'grey',
-    fontSize: 18,
-    marginBottom: 10,
+    paddingHorizontal: 20,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   welcomeText: {
     fontSize: 16,
     color: '#8E8D8A',
+    fontFamily: 'Montserrat Alternates Regular',
   },
   userName: {
     fontSize: 24,
-    fontWeight: 'regular',
-    color: '#8E8D8A',
+    fontWeight: '600',
+    color: '#FF6B6B',
     fontFamily: 'Montserrat Alternates Regular',
   },
-  profileIcon: {
-    padding: 10,
-    alignSelf: 'flex-end',
-    marginTop: -40,
+  profileButton: {
+    height: 40,
+    width: 40,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#FFD4D4',
+  },
+  profileImage: {
+    height: '100%',
+    width: '100%',
   },
   circularTrackerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
+    paddingHorizontal: 20,
   },
   productCard: {
     backgroundColor: '#FFF',
