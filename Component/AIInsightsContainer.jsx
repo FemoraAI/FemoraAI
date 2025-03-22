@@ -141,7 +141,7 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.mainTitle}>Personalised AI Generated Insights</Text>
+      <Text style={styles.mainTitle}>Personalised Insights</Text>
       {!showCards ? (
         <View style={styles.giftWrapper}>
           <TouchableOpacity 
@@ -192,11 +192,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   mainTitle: {
-    fontSize: 20,
+    fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.primary,
     textAlign: 'left',
-    marginBottom: 16,
+    marginBottom: 0,
     paddingHorizontal: 8,
   },
   giftWrapper: {
@@ -224,10 +224,10 @@ const styles = StyleSheet.create({
     bottom: -24,
   },
   giftAnimation: {
-    width: 160,
-    height: 160,
+    width: 200,
+    height: 200,
     position: 'absolute',
-    transform: [{ scale: 1.2 }],
+    transform: [{ scale: 2 }],
   },
   cardsWrapper: {
     paddingVertical: 16,

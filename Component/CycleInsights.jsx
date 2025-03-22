@@ -18,6 +18,7 @@ import StatusCard from '../Component/StatusCard';
 import AIInsightsContainer from '../Component/AIInsightsContainer';
 import SymptomDrawer from '../Component/SymptomDrawer';
 import CalendarLegend from '../Component/CalendarLegend ';
+import PeriodGapChart from '../Component/PeriodGapChart';
 // Import utils and constants
 import { COLORS } from './colors';
 import { generateCalendarData, getCurrentPhase, calculatePeriodStatus } from '../Component/CycleCalculations';
@@ -27,7 +28,108 @@ const CycleHealthTracking = () => {
   const [selectedMonth, setSelectedMonth] = useState(moment());
   const [selectedDate, setSelectedDate] = useState(moment());
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [symptomLogs, setSymptomLogs] = useState({});
+  
+  // Test data for period cycles (last 6 months)
+  const testPeriodData = {
+    cycles: [
+      {
+        startDate: moment().subtract(5, 'months').date(8).format('YYYY-MM-DD'),
+        endDate: moment().subtract(5, 'months').date(13).format('YYYY-MM-DD'),
+        length: 29, // cycle length
+        periodLength: 5
+      },
+      {
+        startDate: moment().subtract(4, 'months').date(7).format('YYYY-MM-DD'),
+        endDate: moment().subtract(4, 'months').date(11).format('YYYY-MM-DD'),
+        length: 31, // slightly longer cycle
+        periodLength: 4
+      },
+      {
+        startDate: moment().subtract(3, 'months').date(9).format('YYYY-MM-DD'),
+        endDate: moment().subtract(3, 'months').date(14).format('YYYY-MM-DD'),
+        length: 26, // shorter cycle
+        periodLength: 5
+      },
+      {
+        startDate: moment().subtract(2, 'months').date(5).format('YYYY-MM-DD'),
+        endDate: moment().subtract(2, 'months').date(10).format('YYYY-MM-DD'),
+        length: 28, // normal cycle
+        periodLength: 5
+      },
+      {
+        startDate: moment().subtract(1, 'months').date(3).format('YYYY-MM-DD'),
+        endDate: moment().subtract(1, 'months').date(9).format('YYYY-MM-DD'),
+        length: 30, // slightly longer cycle
+        periodLength: 6
+      },
+      {
+        startDate: moment().date(2).format('YYYY-MM-DD'),
+        endDate: moment().date(6).format('YYYY-MM-DD'),
+        length: 27, // current cycle
+        periodLength: 4
+      }
+    ]
+  };
+
+  // Initialize with test data spanning different months
+  const [symptomLogs, setSymptomLogs] = useState({
+    // Current month entries
+    [moment().format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
+      moods: [{ id: 'calm', emoji: '😌', text: 'Calm' }],
+      symptoms: [{ id: 'cramps', emoji: '😖', text: 'Cramps' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().format(),
+    },
+    // Previous month entries with aligned period dates from testPeriodData
+    [moment().subtract(1, 'month').date(3).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'heavy', emoji: '🔴', text: 'Heavy' },
+      moods: [{ id: 'happy', emoji: '😊', text: 'Happy' }],
+      symptoms: [{ id: 'fine', emoji: '🙂', text: 'Everything is fine' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().subtract(1, 'month').format(),
+    },
+    // Two months ago entries with aligned period dates
+    [moment().subtract(2, 'months').date(5).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'heavy', emoji: '🔴', text: 'Heavy' },
+      moods: [{ id: 'anxious', emoji: '😟', text: 'Anxious' }],
+      symptoms: [{ id: 'headache', emoji: '🤕', text: 'Headache' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().subtract(2, 'months').format(),
+    },
+    // Three months ago
+    [moment().subtract(3, 'months').date(9).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'light', emoji: '💧', text: 'Light' },
+      moods: [{ id: 'sleepy', emoji: '😴', text: 'Sleepy' }],
+      symptoms: [{ id: 'cramps', emoji: '😖', text: 'Cramps' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().subtract(3, 'months').format(),
+    },
+    // Four months ago
+    [moment().subtract(4, 'months').date(7).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
+      moods: [{ id: 'sad', emoji: '😔', text: 'Sad' }],
+      symptoms: [{ id: 'headache', emoji: '🤕', text: 'Headache' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().subtract(4, 'months').format(),
+    },
+    // Five months ago
+    [moment().subtract(5, 'months').date(8).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
+      moods: [{ id: 'calm', emoji: '😌', text: 'Calm' }],
+      symptoms: [{ id: 'fine', emoji: '🙂', text: 'Everything is fine' }],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().subtract(5, 'months').format(),
+    },
+    // Next month predicted period
+    [moment().add(1, 'month').date(1).format('YYYY-MM-DD')]: {
+      menstrualFlow: { value: 'light', emoji: '💧', text: 'Light' },
+      moods: [],
+      symptoms: [],
+      phase: 'Menstrual Phase',
+      loggedAt: moment().format(),
+    },
+  });
 
   // Symptom logging state
   const [menstrualFlow, setMenstrualFlow] = useState('');
@@ -252,19 +354,9 @@ const CycleHealthTracking = () => {
           <CalendarLegend />
         </View>
 
-        {/* Horizontal container for Status Card and empty container */}
+        {/* Horizontal container for Period Gap Chart */}
         <View style={styles.horizontalContainer}>
-          {/* Square Status Card container */}
-          <View style={styles.statusContainer}>
-            <StatusCard 
-              daysCount={periodStatus.daysCount}
-              message={periodStatus.message}
-              phase={periodStatus.phase}
-            />
-          </View>
-          
-          {/* Empty container (placeholder) */}
-          <View style={styles.emptyContainer} />
+          <PeriodGapChart userData={userData} />
         </View>
 
         <AIInsightsContainer 
@@ -314,37 +406,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   horizontalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
     marginVertical: 10,
-    gap: 16,
-  },
-  statusContainer: {
-    width: Dimensions.get('window').width * 0.4, // 40% of screen width
-    aspectRatio: 1, // Makes it square
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  emptyContainer: {
-    flex: 1,
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 12,
-    minHeight: 150, // Minimum height for visibility
-  },
-  legendContainer: {
-    flex: 1,
-    marginRight: 8,
-  },
-  statusContainer: {
-    flex: 1,
-    marginLeft: 8,
   },
   fab: {
     position: 'absolute',
