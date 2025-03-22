@@ -74,29 +74,30 @@ const styles = StyleSheet.create({
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   weekDayText: {
-    width: 36,
+    width: 32,
     textAlign: 'center',
     fontWeight: 'bold',
     color: COLORS.lightText,
+    fontSize: 12,
   },
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   dayCell: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
   },
   dayText: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.text,
   },
   outOfMonthDay: {
@@ -106,7 +107,7 @@ const styles = StyleSheet.create({
     color: COLORS.lightText,
   },
   todayCell: {
-    borderWidth: 2,
+    borderWidth: 1.5,
     color: COLORS.accent,
   },
   todayText: {
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   },
   selectedCell: {
     backgroundColor: COLORS.mediumPink,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: COLORS.primary,
   },
   selectedDayText: {
@@ -124,9 +125,8 @@ const styles = StyleSheet.create({
   },
   periodDayText: {
     color: '#FFFFFF',
-    fontSize: 14,
-    paddingTop :  10,
-    
+    fontSize: 12,
+    paddingTop: 8,
   },
   ovulationCell: {
     backgroundColor: COLORS.purpleLight,
@@ -135,9 +135,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 2,
     right: 2,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: COLORS.accent,
   },
 });

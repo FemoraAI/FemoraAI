@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  SafeAreaView,
   Dimensions,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -336,33 +336,48 @@ const CycleHealthTracking = () => {
   const isPeriodDay = currentPhase.name === 'Menstrual Phase';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView>
-        <MonthSelector 
-          selectedMonth={selectedMonth} 
-          onPrevMonth={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}
-          onNextMonth={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}
-        />
-        
-        <CycleCalendar 
-          calendarData={calendarData}
-          onDayPress={handleDayPress}
-        />
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.headerSection}>
+          <MonthSelector 
+            selectedMonth={selectedMonth} 
+            onPrevMonth={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}
+            onNextMonth={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}
+          />
+          
+          <CycleCalendar 
+            calendarData={calendarData}
+            onDayPress={handleDayPress}
+          />
 
-        {/* Calendar Legend as thin container below calendar */}
-        <View style={styles.legendContainer}>
-          <CalendarLegend />
+          <View style={styles.legendContainer}>
+            <CalendarLegend />
+          </View>
         </View>
 
-        {/* Horizontal container for Period Gap Chart */}
-        <View style={styles.horizontalContainer}>
-          <PeriodGapChart userData={userData} />
-        </View>
+        <View style={styles.contentSection}>
+          <View style={styles.horizontalContainer}>
+            <PeriodGapChart userData={userData} />
+          </View>
 
-        <AIInsightsContainer 
-          insights={insights}
-          phase={currentPhase}
-        />
+          <AIInsightsContainer 
+            insights={insights}
+            phase={currentPhase}
+          />
+
+          {Object.keys(symptomLogs).length === 0 && (
+            <View style={styles.emptyStateContainer}>
+              <MaterialIcons name="event-note" size={48} color={COLORS.lightText} />
+              <Text style={styles.emptyStateTitle}>No Entries Yet</Text>
+              <Text style={styles.emptyStateText}>
+                Start tracking your cycle by tapping the + button below.{'\n'}
+                Regular tracking helps provide better insights!
+              </Text>
+            </View>
+          )}
+
+          <View style={styles.bottomSpacing} />
+        </View>
       </ScrollView>
       
       <SymptomDrawer 
@@ -384,7 +399,7 @@ const CycleHealthTracking = () => {
       >
         <MaterialIcons name="add" size={24} color={COLORS.white} />
       </TouchableOpacity>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -392,6 +407,26 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  headerSection: {
+    backgroundColor: COLORS.white,
+    paddingTop: 32,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 16,
+  },
+  contentSection: {
+    flex: 1,
+    paddingHorizontal: 8,
   },
   legendContainer: {
     marginHorizontal: 16,
@@ -407,6 +442,30 @@ const styles = StyleSheet.create({
   },
   horizontalContainer: {
     marginVertical: 10,
+  },
+  emptyStateContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    marginTop: 20,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: COLORS.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptyStateText: {
+    fontSize: 14,
+    color: COLORS.lightText,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  bottomSpacing: {
+    height: 100,
   },
   fab: {
     position: 'absolute',
