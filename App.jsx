@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -191,7 +192,7 @@ const TabNavigator = () => {
           component={Edu}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <Icon name="body-outline" size={size} color={color} />
+              <MaterialCommunityIcons name="meditation" size={size+5} color={color} />
             ),
           }}
         />
