@@ -86,24 +86,6 @@ const HomeScreen = () => {
               )}
             </TouchableOpacity>
           </View>
-          <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity 
-              style={[styles.actionButton, styles.sosButton]}
-              onPress={() => navigation.navigate('Emergency')}
-            >
-              <View style={[styles.actionIconContainer, styles.sosIconContainer]}>
-                <Icon name="warning" size={28} color="#FFF" />
-              </View>
-              <Text style={[styles.actionText, styles.sosText]}>SOS</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.actionButton}>
-              <View style={styles.actionIconContainer}>
-                <Icon name="journal" size={24} color="#FF6B6B" />
-              </View>
-              <Text style={styles.actionText}>Journal</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
       <View style={styles.circularTrackerContainer}>
@@ -268,52 +250,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     paddingVertical: 15,
     marginBottom: 25,
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    width: '100%',
-    paddingVertical: 5,
-  },
-  actionButton: {
-    alignItems: 'center',
-    width: 80,
-  },
-  sosButton: {
-    width: 80,
-    transform: [{ scale: 1.1 }],
-  },
-  actionIconContainer: {
-    width: 45,
-    height: 45,
-    borderRadius: 22.5,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sosIconContainer: {
-    backgroundColor: '#FF4747',
-    shadowColor: '#FF4747',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 5,
-  },
-  actionText: {
-    fontSize: 12,
-    color: '#666',
-    fontFamily: 'Montserrat Alternates Regular',
-  },
-  sosText: {
-    color: '#FF4747',
-    fontWeight: '700',
-    fontSize: 13,
   },
 });
 
