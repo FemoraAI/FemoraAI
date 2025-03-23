@@ -25,6 +25,11 @@ export const UserProvider = ({ children }) => {
     createdAt: null,
     lastUpdated: null,
     onboardingCompleted: false,
+    expectedPeriodDate: null,
+    periodGaps: [],
+    lastPeriodChecked: null,
+    isLatePeriod: false,
+    daysLate: 0
   })
 
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
@@ -90,6 +95,13 @@ export const UserProvider = ({ children }) => {
       const timestamp = new Date().toISOString()
       const userRef = doc(db, "users", currentUser.uid)
 
+      let expectedPeriodDate = null
+      if (newData.lastPeriodStart && (!userData.lastPeriodStart || newData.lastPeriodStart !== userData.lastPeriodStart)) {
+        expectedPeriodDate = moment(newData.lastPeriodStart)
+          .add(newData.cycleDays || userData.cycleDays || 28, 'days')
+          .format('YYYY-MM-DD')
+      }
+
       const firestoreData = {
         ...(newData.name && { name: newData.name }),
         ...(newData.phone && { phone: newData.phone }),
@@ -100,6 +112,7 @@ export const UserProvider = ({ children }) => {
         ...(newData.cycleDays && { cycleDays: newData.cycleDays }),
         ...(newData.onboardingCompleted && { onboardingCompleted: newData.onboardingCompleted }),
         ...(newData.isDoctor && { isDoctor: newData.isDoctor }),
+        ...(expectedPeriodDate && { expectedPeriodDate }),
         lastUpdated: timestamp,
       }
 
@@ -230,6 +243,60 @@ export const UserProvider = ({ children }) => {
     return { name: "Luteal Phase", color: "#F8A978" }
   }
 
+  const shouldShowPeriodCheck = () => {
+    if (!userData.expectedPeriodDate) return false
+    
+    const today = moment().startOf('day')
+    const expectedDate = moment(userData.expectedPeriodDate).startOf('day')
+    const lastChecked = userData.lastPeriodChecked ? moment(userData.lastPeriodChecked).startOf('day') : null
+    
+    return (!lastChecked || !lastChecked.isSame(today)) && 
+           (today.isSameOrAfter(expectedDate) || userData.isLatePeriod)
+  }
+
+  const handlePeriodCheck = async (hasPeriodStarted) => {
+    try {
+      const today = moment().startOf('day')
+      const expectedDate = moment(userData.expectedPeriodDate)
+      const userRef = doc(db, "users", userData.uid)
+      
+      if (hasPeriodStarted) {
+        const lastPeriod = moment(userData.lastPeriodStart)
+        const gap = today.diff(lastPeriod, 'days')
+        
+        const newPeriodGaps = [...userData.periodGaps, gap].slice(-6)
+        
+        const nextExpectedDate = today.clone().add(userData.cycleDays || 28, 'days')
+        
+        const updateData = {
+          lastPeriodStart: today.format('YYYY-MM-DD'),
+          expectedPeriodDate: nextExpectedDate.format('YYYY-MM-DD'),
+          lastPeriodChecked: today.format('YYYY-MM-DD'),
+          periodGaps: newPeriodGaps,
+          isLatePeriod: false,
+          daysLate: 0
+        }
+        
+        await setDoc(userRef, updateData, { merge: true })
+        setUserData(prev => ({ ...prev, ...updateData }))
+      } else {
+        const daysLate = today.diff(expectedDate, 'days')
+        
+        const updateData = {
+          lastPeriodChecked: today.format('YYYY-MM-DD'),
+          isLatePeriod: true,
+          daysLate: daysLate
+        }
+        
+        await setDoc(userRef, updateData, { merge: true })
+        setUserData(prev => ({ ...prev, ...updateData }))
+      }
+    } catch (error) {
+      console.error("Error updating period check:", error)
+      throw error
+    }
+  }
+
   return (
     <UserContext.Provider
       value={{
@@ -243,6 +310,8 @@ export const UserProvider = ({ children }) => {
         getPeriodStatus,
         getActiveDatesForMonth,
         getCurrentPhase,
+        shouldShowPeriodCheck,
+        handlePeriodCheck
       }}
     >
       {children}

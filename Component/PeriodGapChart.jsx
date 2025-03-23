@@ -1,243 +1,179 @@
 import React from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { useUser } from './context/UserContext';
 import { COLORS } from './colors';
-import moment from 'moment';
+import { BarChart } from 'react-native-chart-kit';
 
-const PeriodGapChart = ({ userData }) => {
-  const calculateGaps = () => {
-    if (!userData?.lastPeriodStart) {
-      return [];
-    }
+const PeriodGapChart = () => {
+  const { userData } = useUser();
+  const { periodGaps = [] } = userData;
 
-    const gaps = [];
-    const cycleLength = parseInt(userData.cycleDays) || 28;
-    let currentDate = moment();
-    let lastPeriodDate = moment(userData.lastPeriodStart);
+  if (periodGaps.length === 0) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerContainer}>
+          <Text style={styles.title}>Cycle Length Analysis</Text>
+          <Text style={styles.subtitle}>Past {periodGaps.length} Months</Text>
+        </View>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            Your cycle length analysis will appear here after tracking your first period.
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
-    // Calculate last 6 periods
-    for (let i = 0; i < 6; i++) {
-      const gap = {
-        startDate: moment(lastPeriodDate),
-        days: cycleLength
-      };
-      gaps.unshift(gap); // Add to beginning of array
-      lastPeriodDate = moment(lastPeriodDate).subtract(cycleLength, 'days');
-    }
+  // Define darker feminine colors for the bars
+  const barColors = [
+    '#A24E68', // Darker Rose
+    '#8D3B55', // Even Darker Rose
+  ];
 
-    return gaps;
+  // Prepare data for the chart
+  const chartData = {
+    labels: periodGaps.map((_, index) => 
+      index === periodGaps.length - 1 ? 'Latest' : `${periodGaps.length - index - 1}`
+    ),
+    datasets: [{
+      data: periodGaps,
+      colors: periodGaps.map((_, index) => {
+        const colorIndex = index % barColors.length;
+        return () => barColors[colorIndex];
+      })
+    }]
   };
 
-  const gaps = calculateGaps();
-  const maxGap = Math.max(...gaps.map(gap => gap.days), 28); // Default to 28 if no gaps
-  const windowWidth = Dimensions.get('window').width;
-  const chartWidth = windowWidth - 32; // 16px padding on each side
-  const barWidth = (chartWidth / 12) - 12; // Made bars thinner with less gap
-  
-  // Calculate dots based on container dimensions
-  const containerHeight = 280; // Match container height
-  const dotsPerColumn = 30; // More dots vertically
-  const dotsPerRow = 40; // More dots horizontally
-  const totalDots = dotsPerColumn * dotsPerRow;
-  const verticalSpacing = containerHeight / dotsPerColumn;
-  const horizontalSpacing = chartWidth / dotsPerRow;
+  const chartConfig = {
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    barPercentage: 0.65,
+    decimalPlaces: 0,
+    color: (opacity = 1) => `rgba(155, 89, 109, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(93, 71, 58, ${opacity})`,
+    style: {
+      borderRadius: 16,
+    },
+    propsForBackgroundLines: {
+      strokeDasharray: '5 5', // More prominent dotted grid
+      strokeWidth: 1.4,
+      strokeOpacity: 0.5,
+    },
+    propsForLabels: {
+      fontSize: 10,
+    },
+    fillShadowGradientFrom: '#8D3B55', // Darker gradient start
+    fillShadowGradientTo: '#A24E68', // Darker gradient end
+  };
 
   return (
-    <View style={styles.outerContainer}>
+    <View style={styles.container}>
       <View style={styles.headerContainer}>
         <Text style={styles.title}>Cycle Length Analysis</Text>
-        <Text style={styles.subtitle}>Last 6 months pattern</Text>
+        <Text style={styles.subtitle}>Past {periodGaps.length} Months</Text>
       </View>
-      <View style={styles.container}>
-        {/* Technical dot pattern */}
-        <View style={styles.dotPattern}>
-          {[...Array(totalDots)].map((_, i) => (
-            <View
-              key={`dot-${i}`}
-              style={[
-                styles.dot,
-                {
-                  left: (i % dotsPerRow) * horizontalSpacing,
-                  top: Math.floor(i / dotsPerRow) * verticalSpacing,
-                }
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Grid background */}
-        <View style={styles.gridBackground}>
-          {[...Array(10)].map((_, i) => (
-            <View
-              key={`horizontal-${i}`}
-              style={[
-                styles.gridLineHorizontal,
-                { top: (i * (280 / 10)) + 'px' }
-              ]}
-            />
-          ))}
-          {[...Array(20)].map((_, i) => (
-            <View
-              key={`vertical-${i}`}
-              style={[
-                styles.gridLineVertical,
-                { left: (i * (windowWidth / 20)) + 'px' }
-              ]}
-            />
-          ))}
-        </View>
-
-        {/* Chart content */}
-        <View style={styles.chartContent}>
-          {gaps.length === 0 ? (
-            <Text style={styles.emptyText}>Start tracking to see your cycle patterns</Text>
-          ) : (
-            <View style={styles.barsContainer}>
-              {gaps.map((gap, index) => (
-                <View key={index} style={styles.barWrapper}>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: (gap.days / maxGap) * 200,
-                        width: barWidth,
-                      }
-                    ]}
-                  >
-                    <Text style={styles.barText}>{gap.days}</Text>
-                  </View>
-                  <Text style={styles.dateText}>
-                    {gap.startDate.format('MMM')}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </View>
+      <View style={styles.chartBackground}>
+        {/* Dotted background pattern */}
+        {[...Array(20)].map((_, rowIndex) => (
+          <View key={`row-${rowIndex}`} style={styles.dotRow}>
+            {[...Array(20)].map((_, colIndex) => (
+              <View key={`dot-${rowIndex}-${colIndex}`} style={styles.dot} />
+            ))}
+          </View>
+        ))}
+      </View>
+      <View style={styles.chartWrapper}>
+        <BarChart
+          data={chartData}
+          width={Dimensions.get('window').width - 40}
+          height={220}
+          yAxisLabel=""
+          chartConfig={chartConfig}
+          showValuesOnTopOfBars={true}
+          showBarTops={false}
+          fromZero={true}
+          withInnerLines={true}
+          segments={5}
+          style={{
+            marginVertical: 8,
+            borderRadius: 16,
+          }}
+        />
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    marginHorizontal: 16,
-    marginVertical: 8,
-  },
-  headerContainer: {
-    marginBottom: 8,
-    paddingHorizontal: 4,
+  container: {
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 15,
+    margin: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    position: 'relative',
   },
   title: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#B67B7B',
-    marginBottom: 2,
+    color: COLORS.text,
+    marginBottom: 4,
+    textAlign: 'left',
+    zIndex: 2,
+  },
+  headerContainer: {
+    marginBottom: 16,
+    paddingLeft: 8,
   },
   subtitle: {
-    fontSize: 12,
-    color: '#D4A5A5',
-    fontWeight: '500',
+    fontSize: 14,
+    color: COLORS.lightText,
+    textAlign: 'left',
+    zIndex: 2,
   },
-  container: {
-    height: 280,
-    backgroundColor: '#FDF6F7',
-    borderRadius: 12,
-    padding: 16,
-    position: 'relative',
-    overflow: 'hidden',
-    shadowColor: '#D4A5A5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
+  chartWrapper: {
+    alignItems: 'center',
+    marginTop: -10,
+    zIndex: 2,
   },
-  dotPattern: {
+  emptyContainer: {
+    height: 150,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: COLORS.lightText,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  chartBackground: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.25,
+    top: 50,
+    left: 15,
+    right: 15,
+    bottom: 15,
+    opacity: 0.07,
+    
+    zIndex: 1,
+    flexDirection: 'column',
+    justifyContent: 'space-around',
+  },
+  dotRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
   dot: {
-    position: 'absolute',
     width: 2,
     height: 2,
     borderRadius: 1,
-    backgroundColor: '#C48B9F', // Slightly darker shade for better visibility
-  },
-  gridBackground: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.05,
-  },
-  gridLineHorizontal: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: '#D4A5A5',
-  },
-  gridLineVertical: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    width: 1,
-    backgroundColor: '#D4A5A5',
-  },
-  chartContent: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 2,
-  },
-  barsContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    height: '100%',
-    width: '100%',
-    paddingTop: 20,
-  },
-  barWrapper: {
-    alignItems: 'center',
-  },
-  bar: {
-    backgroundColor: '#E8B4B8',
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    justifyContent: 'flex-start',
-    alignItems: 'center',
-    paddingTop: 8,
-    shadowColor: '#D4A5A5',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  barText: {
-    color: '#ffffff',
-    fontWeight: '600',
-    fontSize: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.1)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
-  },
-  dateText: {
-    marginTop: 8,
-    color: '#B67B7B',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  emptyText: {
-    color: '#B67B7B',
-    textAlign: 'center',
-    fontSize: 14,
-    fontWeight: '500',
+    backgroundColor: '#8D3B55',
   },
 });
 
-export default PeriodGapChart; 
+export default PeriodGapChart;

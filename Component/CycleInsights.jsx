@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,14 @@ import {
   TouchableOpacity,
   ScrollView,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import moment from 'moment';
 import { useUser } from './context/UserContext';
+import { db } from '../firebase.config';
+import { collection, doc, setDoc, query, where, getDocs, deleteDoc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 // Import Component
 import MonthSelector from '../Component/MonthSelector';
@@ -24,124 +28,50 @@ import { COLORS } from './colors';
 import { generateCalendarData, getCurrentPhase, calculatePeriodStatus } from '../Component/CycleCalculations';
 
 const CycleHealthTracking = () => {
-  const { userData, isInPeriod } = useUser();
+  const { userData, isInPeriod, updateUserData } = useUser();
   const [selectedMonth, setSelectedMonth] = useState(moment());
   const [selectedDate, setSelectedDate] = useState(moment());
   const [drawerVisible, setDrawerVisible] = useState(false);
-  
-  // Test data for period cycles (last 6 months)
-  const testPeriodData = {
-    cycles: [
-      {
-        startDate: moment().subtract(5, 'months').date(8).format('YYYY-MM-DD'),
-        endDate: moment().subtract(5, 'months').date(13).format('YYYY-MM-DD'),
-        length: 29, // cycle length
-        periodLength: 5
-      },
-      {
-        startDate: moment().subtract(4, 'months').date(7).format('YYYY-MM-DD'),
-        endDate: moment().subtract(4, 'months').date(11).format('YYYY-MM-DD'),
-        length: 31, // slightly longer cycle
-        periodLength: 4
-      },
-      {
-        startDate: moment().subtract(3, 'months').date(9).format('YYYY-MM-DD'),
-        endDate: moment().subtract(3, 'months').date(14).format('YYYY-MM-DD'),
-        length: 26, // shorter cycle
-        periodLength: 5
-      },
-      {
-        startDate: moment().subtract(2, 'months').date(5).format('YYYY-MM-DD'),
-        endDate: moment().subtract(2, 'months').date(10).format('YYYY-MM-DD'),
-        length: 28, // normal cycle
-        periodLength: 5
-      },
-      {
-        startDate: moment().subtract(1, 'months').date(3).format('YYYY-MM-DD'),
-        endDate: moment().subtract(1, 'months').date(9).format('YYYY-MM-DD'),
-        length: 30, // slightly longer cycle
-        periodLength: 6
-      },
-      {
-        startDate: moment().date(2).format('YYYY-MM-DD'),
-        endDate: moment().date(6).format('YYYY-MM-DD'),
-        length: 27, // current cycle
-        periodLength: 4
-      }
-    ]
-  };
+  const [symptomLogs, setSymptomLogs] = useState({});
+  const [loading, setLoading] = useState(true);
 
-  // Initialize with test data spanning different months
-  const [symptomLogs, setSymptomLogs] = useState({
-    // Current month entries
-    [moment().format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
-      moods: [{ id: 'calm', emoji: '😌', text: 'Calm' }],
-      symptoms: [{ id: 'cramps', emoji: '😖', text: 'Cramps' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().format(),
-    },
-    // Previous month entries with aligned period dates from testPeriodData
-    [moment().subtract(1, 'month').date(3).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'heavy', emoji: '🔴', text: 'Heavy' },
-      moods: [{ id: 'happy', emoji: '😊', text: 'Happy' }],
-      symptoms: [{ id: 'fine', emoji: '🙂', text: 'Everything is fine' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().subtract(1, 'month').format(),
-    },
-    // Two months ago entries with aligned period dates
-    [moment().subtract(2, 'months').date(5).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'heavy', emoji: '🔴', text: 'Heavy' },
-      moods: [{ id: 'anxious', emoji: '😟', text: 'Anxious' }],
-      symptoms: [{ id: 'headache', emoji: '🤕', text: 'Headache' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().subtract(2, 'months').format(),
-    },
-    // Three months ago
-    [moment().subtract(3, 'months').date(9).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'light', emoji: '💧', text: 'Light' },
-      moods: [{ id: 'sleepy', emoji: '😴', text: 'Sleepy' }],
-      symptoms: [{ id: 'cramps', emoji: '😖', text: 'Cramps' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().subtract(3, 'months').format(),
-    },
-    // Four months ago
-    [moment().subtract(4, 'months').date(7).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
-      moods: [{ id: 'sad', emoji: '😔', text: 'Sad' }],
-      symptoms: [{ id: 'headache', emoji: '🤕', text: 'Headache' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().subtract(4, 'months').format(),
-    },
-    // Five months ago
-    [moment().subtract(5, 'months').date(8).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'medium', emoji: '🩸', text: 'Medium' },
-      moods: [{ id: 'calm', emoji: '😌', text: 'Calm' }],
-      symptoms: [{ id: 'fine', emoji: '🙂', text: 'Everything is fine' }],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().subtract(5, 'months').format(),
-    },
-    // Next month predicted period
-    [moment().add(1, 'month').date(1).format('YYYY-MM-DD')]: {
-      menstrualFlow: { value: 'light', emoji: '💧', text: 'Light' },
-      moods: [],
-      symptoms: [],
-      phase: 'Menstrual Phase',
-      loggedAt: moment().format(),
-    },
-  });
+  // Fetch symptom logs from Firestore
+  useEffect(() => {
+    const fetchSymptomLogs = async () => {
+      if (!userData?.uid || !userData?.isLoggedIn) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        const userLogsRef = doc(db, 'userCycleLogs', userData.uid);
+        const userLogsDoc = await getDoc(userLogsRef);
+        
+        if (userLogsDoc.exists()) {
+          const data = userLogsDoc.data();
+          setSymptomLogs(data.logs || {});
+        } else {
+          setSymptomLogs({});
+        }
+      } catch (error) {
+        console.error('Error fetching symptom logs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSymptomLogs();
+  }, [userData?.uid, userData?.isLoggedIn]);
 
   // Symptom logging state
   const [menstrualFlow, setMenstrualFlow] = useState('');
   const [moods, setMoods] = useState({
-    calm: false,
     happy: false,
-    anxious: false,
-    distracted: false, 
-    confused: false,
-    angry: false,
+    content: false,
+    irritated: false,
+    calm: false,
     sad: false,
-    sleepy: false
+    unhappy: false
   });
   const [symptoms, setSymptoms] = useState({
     fine: false,
@@ -172,14 +102,12 @@ const CycleHealthTracking = () => {
           acc[mood.id] = true;
           return acc;
         }, {
-          calm: false,
           happy: false,
-          anxious: false,
-          distracted: false, 
-          confused: false,
-          angry: false,
+          content: false,
+          irritated: false,
+          calm: false,
           sad: false,
-          sleepy: false
+          unhappy: false
         }) || {});
         setSymptoms(log.symptoms?.reduce((acc, symptom) => {
           acc[symptom.id] = true;
@@ -199,14 +127,12 @@ const CycleHealthTracking = () => {
         // Reset form if no existing logs
         setMenstrualFlow('');
         setMoods({
-          calm: false,
           happy: false,
-          anxious: false,
-          distracted: false, 
-          confused: false,
-          angry: false,
+          content: false,
+          irritated: false,
+          calm: false,
           sad: false,
-          sleepy: false
+          unhappy: false
         });
         setSymptoms({
           fine: false,
@@ -225,7 +151,12 @@ const CycleHealthTracking = () => {
     }
   };
 
-  const saveSymptomLog = () => {
+  const saveSymptomLog = async () => {
+    if (!userData?.uid || !userData?.isLoggedIn) {
+      console.log('Cannot save log: No user data or not logged in');
+      return;
+    }
+    
     const dateKey = selectedDate.format('YYYY-MM-DD');
     
     // Create arrays of selected moods and symptoms with emojis
@@ -233,14 +164,12 @@ const CycleHealthTracking = () => {
       .filter(key => moods[key])
       .map(key => {
         const emojiMap = {
-          calm: '😌',
           happy: '😊',
-          anxious: '😟',
-          distracted: '😳',
-          confused: '🤔',
-          angry: '😠',
+          content: '😌',
+          irritated: '😟',
+          calm: '😌',
           sad: '😔',
-          sleepy: '😴',
+          unhappy: '😟',
         };
         
         return {
@@ -286,11 +215,24 @@ const CycleHealthTracking = () => {
       phase: getCurrentPhase(selectedDate, userData).name,
       loggedAt: moment().format(),
     };
-    
-    setSymptomLogs({
-      ...symptomLogs,
-      [dateKey]: log,
-    });
+
+    try {
+      // Save to Firestore using update to modify only the specific date in the logs object
+      const userLogsRef = doc(db, 'userCycleLogs', userData.uid);
+      await setDoc(userLogsRef, {
+        logs: {
+          [dateKey]: log
+        }
+      }, { merge: true });
+      
+      // Update local state
+      setSymptomLogs(prevLogs => ({
+        ...prevLogs,
+        [dateKey]: log,
+      }));
+    } catch (error) {
+      console.error('Error saving symptom log:', error);
+    }
     
     setDrawerVisible(false);
   };
@@ -337,68 +279,69 @@ const CycleHealthTracking = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
-          <MonthSelector 
-            selectedMonth={selectedMonth} 
-            onPrevMonth={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}
-            onNextMonth={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading your cycle data...</Text>
+        </View>
+      ) : (
+        <>
+          <ScrollView contentContainerStyle={styles.scrollContent}>
+            <View style={styles.headerSection}>
+              <MonthSelector 
+                selectedMonth={selectedMonth} 
+                onPrevMonth={() => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'))}
+                onNextMonth={() => setSelectedMonth(moment(selectedMonth).add(1, 'month'))}
+              />
+              
+              <CycleCalendar 
+                calendarData={calendarData}
+                onDayPress={handleDayPress}
+              />
+
+              <View style={styles.legendContainer}>
+                <CalendarLegend />
+              </View>
+            </View>
+
+
+            <AIInsightsContainer 
+                insights={insights}
+                phase={currentPhase}
+              />
+              
+            <View style={styles.contentSection}>
+              <View style={styles.horizontalContainer}>
+                <PeriodGapChart userData={userData} />
+              </View>
+
+              
+
+              <View style={styles.bottomSpacing} />
+            </View>
+          </ScrollView>
+          
+          <SymptomDrawer 
+            visible={drawerVisible}
+            onClose={() => setDrawerVisible(false)}
+            isPeriodDay={isPeriodDay}
+            menstrualFlow={menstrualFlow}
+            setMenstrualFlow={setMenstrualFlow}
+            moods={moods}
+            setMoods={setMoods}
+            symptoms={symptoms}
+            setSymptoms={setSymptoms}
+            onSave={saveSymptomLog}
           />
           
-          <CycleCalendar 
-            calendarData={calendarData}
-            onDayPress={handleDayPress}
-          />
-
-          <View style={styles.legendContainer}>
-            <CalendarLegend />
-          </View>
-        </View>
-
-        <View style={styles.contentSection}>
-          <View style={styles.horizontalContainer}>
-            <PeriodGapChart userData={userData} />
-          </View>
-
-          <AIInsightsContainer 
-            insights={insights}
-            phase={currentPhase}
-          />
-
-          {Object.keys(symptomLogs).length === 0 && (
-            <View style={styles.emptyStateContainer}>
-              <MaterialIcons name="event-note" size={48} color={COLORS.lightText} />
-              <Text style={styles.emptyStateTitle}>No Entries Yet</Text>
-              <Text style={styles.emptyStateText}>
-                Start tracking your cycle by tapping the + button below.{'\n'}
-                Regular tracking helps provide better insights!
-              </Text>
-            </View>
-          )}
-
-          <View style={styles.bottomSpacing} />
-        </View>
-      </ScrollView>
-      
-      <SymptomDrawer 
-        visible={drawerVisible}
-        onClose={() => setDrawerVisible(false)}
-        isPeriodDay={isPeriodDay}
-        menstrualFlow={menstrualFlow}
-        setMenstrualFlow={setMenstrualFlow}
-        moods={moods}
-        setMoods={setMoods}
-        symptoms={symptoms}
-        setSymptoms={setSymptoms}
-        onSave={saveSymptomLog}
-      />
-      
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => handleDayPress({ date: moment(), isFuture: false })}
-      >
-        <MaterialIcons name="add" size={24} color={COLORS.white} />
-      </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.fab}
+            onPress={() => handleDayPress({ date: moment(), isFuture: false })}
+          >
+            <MaterialIcons name="add" size={24} color={COLORS.white} />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 };
@@ -482,6 +425,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: COLORS.text,
   }
 });
 
