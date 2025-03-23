@@ -16,6 +16,13 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this component is correctly imported
 import { useUser } from './context/UserContext'; 
 import { useNavigation } from '@react-navigation/native';
+import RecommendedReads from '../Component/RecommendedReads';
+const PHASES = {
+  menstrual: { name: 'Menstrual Phase' },
+  follicular: { name: 'Follicular Phase',},
+  ovulation: { name: 'Ovulation Phase',  },
+  luteal: { name: 'Luteal Phase', },
+};
 
 const PeriodCheckDialog = ({ visible, onResponse }) => {
   return (
@@ -142,14 +149,12 @@ const HomeScreen = () => {
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
+      <View style={styles.recommendedReadsContainer}>
+        <RecommendedReads phases={PHASES} />
+      </View>
     </>
   ), [userData.name, userData.profilePic, userData.isLatePeriod, userData.daysLate]);
 
-  const renderQuickActions = useCallback(() => (
-    <View style={styles.quickActionsContainer}>
-      {/* Empty container kept for future use if needed */}
-    </View>
-  ), [navigation]);
 
   return (
     <LinearGradient
@@ -174,7 +179,7 @@ const HomeScreen = () => {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       />
-      
+
       <PeriodCheckDialog
         visible={showPeriodCheck}
         onResponse={handlePeriodResponse}
@@ -189,7 +194,7 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height + (Platform.OS === 'ios' ? 50 : StatusBar.currentHeight),
   },
   container: {
-    paddingHorizontal: 10,
+    flexGrow: 1,
     paddingBottom: 20,
   },
   headerContainer: {
@@ -204,6 +209,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    width: '100%',
   },
   header: {
     paddingHorizontal: 20,
@@ -361,6 +367,11 @@ const styles = StyleSheet.create({
     color: '#FF4D6D',
     fontSize: 14,
     marginTop: 4,
+  },
+  recommendedReadsContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+    width: '100%',
   },
 });
 

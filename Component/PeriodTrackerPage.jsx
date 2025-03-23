@@ -80,7 +80,7 @@ const PeriodTracker = () => {
         periodLength={periodLength}
       />
       <MoodLogger />
-      <RecommendedReads phases={PHASES} />
+      
     </View>
   );
 };
