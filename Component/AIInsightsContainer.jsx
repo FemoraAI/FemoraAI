@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
   container: {
     marginHorizontal: 16,
     marginVertical: 8,
-    marginBottom: 120,
+    marginBottom: 20,
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: CONTAINER_PADDING,

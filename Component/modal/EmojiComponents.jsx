@@ -129,14 +129,12 @@ export const DischargeSelector = ({ selectedColor, selectedOdor, onSelectColor, 
 
 export const MoodSelector = ({ selectedMoods, onToggle }) => {
   const options = [
-    { value: 'calm', emoji: '😌', label: 'Calm' },
     { value: 'happy', emoji: '😊', label: 'Happy' },
-    { value: 'anxious', emoji: '😟', label: 'Anxious' },
-    { value: 'distracted', emoji: '😳', label: 'Distracted' },
-    { value: 'confused', emoji: '🤔', label: 'Confused' },
-    { value: 'angry', emoji: '😠', label: 'Angry' },
-    { value: 'sad', emoji: '😔', label: 'Sad' },
-    { value: 'sleepy', emoji: '😴', label: 'Sleepy' },
+    { value: 'content', emoji: '😐', label: 'Content' },
+    { value: 'irritated', emoji: '😤', label: 'Irritated' },
+    { value: 'calm', emoji: '😌', label: 'Calm' },
+    { value: 'sad', emoji: '😢', label: 'Sad' },
+    { value: 'unhappy', emoji: '😞', label: 'Unhappy' }
   ];
 
   return (

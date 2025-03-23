@@ -24,6 +24,7 @@ const COLORS = {
   text: '#5D473A',
   lightText: '#8B735B',
   white: '#FFFFFF',
+  warning: '#FF4D6D',
 };
 
 const CircularPeriodTracker = ({ 
@@ -98,6 +99,32 @@ const CircularPeriodTracker = ({
     return dates;
   };
 
+  const renderCenterContent = () => {
+    if (userData.isLatePeriod) {
+      return (
+        <>
+          <MaterialIcons name="warning" size={24} color={COLORS.warning} style={styles.warningIcon} />
+          <Text style={[styles.centerTextNumber, { color: COLORS.warning }]}>
+            {userData.daysLate}
+          </Text>
+          <Text style={[styles.centerTextMessage, { color: COLORS.warning }]}>
+            {userData.daysLate === 1 ? 'day late' : 'days late'}
+          </Text>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <Text style={styles.centerTextNumber}>{periodStatus.daysCount}</Text>
+        <Text style={styles.centerTextMessage}>{periodStatus.message}</Text>
+        <Text style={[styles.phaseText, { color: periodStatus.phase.color }]}>
+          {periodStatus.phase.name}
+        </Text>
+      </>
+    );
+  };
+
   return (
     <>
       <View style={styles.monthTabsContainer}>
@@ -128,19 +155,18 @@ const CircularPeriodTracker = ({
         
         <View style={styles.outerCircleShadow}>
           <LinearGradient
-            colors={['#FFF5F7', '#FFE5E5']}
+            colors={userData.isLatePeriod ? ['#FFF5F5', '#FFE5E5'] : ['#FFF5F7', '#FFE5E5']}
             style={styles.gradientCircle}
           >
             <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE} style={styles.circularTracker}>
               {renderDates()}
             </Svg>
             
-            <View style={styles.centerTextContainer}>
-              <Text style={styles.centerTextNumber}>{periodStatus.daysCount}</Text>
-              <Text style={styles.centerTextMessage}>{periodStatus.message}</Text>
-              <Text style={[styles.phaseText, { color: periodStatus.phase.color }]}>
-                {periodStatus.phase.name}
-              </Text>
+            <View style={[
+              styles.centerTextContainer,
+              userData.isLatePeriod && styles.centerTextContainerLate
+            ]}>
+              {renderCenterContent()}
             </View>
           </LinearGradient>
         </View>
@@ -157,8 +183,8 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   arrowButton: {
-    padding: 15,  // Increased touch area
-    marginHorizontal: -5, // Negative margin to maintain visual spacing
+    padding: 15,
+    marginHorizontal: -5,
   },
   monthText: {
     fontSize: 20,
@@ -217,6 +243,11 @@ const styles = StyleSheet.create({
     height: CIRCLE_SIZE * 0.4,
     zIndex: 2,
   },
+  centerTextContainerLate: {
+    backgroundColor: 'rgba(255, 77, 109, 0.1)',
+    borderRadius: (CIRCLE_SIZE * 0.4) / 2,
+    padding: 10,
+  },
   centerTextNumber: {
     fontSize: 32,
     fontWeight: '700',
@@ -232,6 +263,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginTop: 8,
+  },
+  warningIcon: {
+    marginBottom: 8,
   },
 });
 

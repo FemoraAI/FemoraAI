@@ -18,6 +18,7 @@ import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArticleModal from "./modal/Articlemodal";
 import LottieView from "lottie-react-native";
+import sunAnimation from '../assets/animations/sun.json';
 
 // Soft, modern color palette
 const COLORS = {
@@ -199,7 +200,7 @@ const MainContent = () => {
     {
       id: 5,
       question: "Your ideal adventure buddy would be... 🤝",
-      options: ["Gym Partner 🏋️‍♀️", "Meditation Guru ��‍♂️", "Party Friend 🎉", "Nature Explorer 🏞️"],
+      options: ["Gym Partner 🏋️‍♀️", "Meditation Guru 🧘‍♂️", "Party Friend 🎉", "Nature Explorer 🏞️"],
       key: "activity_preference",
     },
     {
@@ -468,13 +469,13 @@ const MainContent = () => {
           </TouchableOpacity>
         </View>
         
-        {/* Search Bar */}
-        <View style={styles.searchContainer}>
-          <MaterialIcons name="search" size={20} color={COLORS.lightText} style={styles.searchIcon} />
-          <TextInput 
-            placeholder="Search for wellness activities..."
-            style={styles.searchInput}
-            placeholderTextColor={COLORS.lightText}
+        {/* Search Bar - Replacing with Sun Animation */}
+        <View style={styles.sunAnimationContainer}>
+          <LottieView
+            source={sunAnimation}
+            autoPlay
+            loop
+            style={styles.sunAnimation}
           />
         </View>
 
@@ -718,27 +719,15 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: COLORS.accent,
   },
-  searchContainer: {
-    flexDirection: 'row',
+  sunAnimationContainer: {
+    height: 200,
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    justifyContent: 'center',
+    marginBottom: -30,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: COLORS.text,
+  sunAnimation: {
+    width: 400,
+    height: 400,
   },
   activitySection: {
     marginBottom: 24,

@@ -9,6 +9,7 @@ import {
   Platform,
   StatusBar,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -16,9 +17,44 @@ import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this com
 import { useUser } from './context/UserContext'; 
 import { useNavigation } from '@react-navigation/native';
 
+const PeriodCheckDialog = ({ visible, onResponse }) => {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.dialogContainer}>
+          <Text style={styles.dialogTitle}>Period Check</Text>
+          <Text style={styles.dialogText}>
+            Has your period started today?
+          </Text>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.noButton]}
+              onPress={() => onResponse(false)}
+            >
+              <Text style={styles.buttonText}>No</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.dialogButton, styles.yesButton]}
+              onPress={() => onResponse(true)}
+            >
+              <Text style={styles.buttonText}>Yes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
 const HomeScreen = () => {
   const navigation = useNavigation();
-  const { userData } = useUser();
+  const { userData, shouldShowPeriodCheck, handlePeriodCheck } = useUser();
+  const [showPeriodCheck, setShowPeriodCheck] = useState(false);
 
   const [cartItems, setCartItems] = useState({});
   const [products, setProducts] = useState([]);
@@ -61,6 +97,16 @@ const HomeScreen = () => {
     </View>
   ), [cartItems, handleAddToCart, handleRemoveFromCart]);
 
+  const handlePeriodResponse = async (hasPeriodStarted) => {
+    try {
+      await handlePeriodCheck(hasPeriodStarted);
+    } catch (error) {
+      console.error('Error handling period response:', error);
+    } finally {
+      setShowPeriodCheck(false);
+    }
+  };
+
   const renderHeader = useCallback(() => (
     <>
       <View style={styles.headerContainer}>
@@ -69,6 +115,11 @@ const HomeScreen = () => {
             <View>
               <Text style={styles.welcomeText}>Welcome back,</Text>
               <Text style={styles.userName}>{userData.name || 'User'}</Text>
+              {userData.isLatePeriod && (
+                <Text style={styles.lateText}>
+                  Period is {userData.daysLate} {userData.daysLate === 1 ? 'day' : 'days'} late
+                </Text>
+              )}
             </View>
             <TouchableOpacity 
               style={styles.profileButton} 
@@ -92,7 +143,7 @@ const HomeScreen = () => {
         <CircularTracker />
       </View>
     </>
-  ), [userData.name, userData.profilePic]);
+  ), [userData.name, userData.profilePic, userData.isLatePeriod, userData.daysLate]);
 
   const renderQuickActions = useCallback(() => (
     <View style={styles.quickActionsContainer}>
@@ -122,6 +173,11 @@ const HomeScreen = () => {
         onEndReachedThreshold={0.5}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+      />
+      
+      <PeriodCheckDialog
+        visible={showPeriodCheck}
+        onResponse={handlePeriodResponse}
       />
     </LinearGradient>
   );
@@ -250,6 +306,61 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     paddingVertical: 15,
     marginBottom: 25,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dialogContainer: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  dialogTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FF6B6B',
+    marginBottom: 16,
+  },
+  dialogText: {
+    fontSize: 18,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  dialogButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  yesButton: {
+    backgroundColor: '#FF6B6B',
+  },
+  noButton: {
+    backgroundColor: '#8E8D8A',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  lateText: {
+    color: '#FF4D6D',
+    fontSize: 14,
+    marginTop: 4,
   },
 });
 
