@@ -19,10 +19,8 @@ import { getAuth } from 'firebase/auth';
 import MonthSelector from '../Component/MonthSelector';
 import CycleCalendar from '../Component/CycleCalendar';
 import StatusCard from '../Component/StatusCard';
-import AIInsightsContainer from '../Component/AIInsightsContainer';
 import SymptomDrawer from '../Component/SymptomDrawer';
 import CalendarLegend from '../Component/CalendarLegend ';
-import PeriodGapChart from '../Component/PeriodGapChart';
 // Import utils and constants
 import { COLORS } from './colors';
 import { generateCalendarData, getCurrentPhase, calculatePeriodStatus } from '../Component/CycleCalculations';
@@ -237,43 +235,8 @@ const CycleHealthTracking = () => {
     setDrawerVisible(false);
   };
 
-  const getAIGeneratedInsights = () => {
-    const phase = getCurrentPhase(selectedDate, userData);
-    
-    // Customize insights based on the phase
-    const phaseInsights = {
-      'Menstrual Phase': [
-        "Take it easy and rest when needed",
-        "Stay hydrated and warm",
-        "Light exercise like walking or yoga"
-      ],
-      'Follicular Phase': [
-        "Energy levels are rising",
-        "Great time for new projects",
-        "Focus on strength training"
-      ],
-      'Ovulation Phase': [
-        "Peak energy and confidence",
-        "Ideal for social activities",
-        "Perfect for high-intensity workouts"
-      ],
-      'Luteal Phase': [
-        "Practice self-care routines",
-        "Maintain balanced nutrition",
-        "Listen to your body's needs"
-      ]
-    };
-
-    return phaseInsights[phase.name] || [
-      "Track your symptoms daily",
-      "Stay consistent with routines",
-      "Monitor your cycle patterns"
-    ];
-  };
-
   const calendarData = generateCalendarData(selectedMonth, userData, symptomLogs, selectedDate);
   const periodStatus = calculatePeriodStatus(userData, cycleLength, periodLength, isInPeriod);
-  const insights = getAIGeneratedInsights();
   const currentPhase = getCurrentPhase(selectedDate, userData);
   const isPeriodDay = currentPhase.name === 'Menstrual Phase';
 
@@ -303,20 +266,8 @@ const CycleHealthTracking = () => {
                 <CalendarLegend />
               </View>
             </View>
-
-
-            <AIInsightsContainer 
-                insights={insights}
-                phase={currentPhase}
-              />
               
             <View style={styles.contentSection}>
-              <View style={styles.horizontalContainer}>
-                <PeriodGapChart userData={userData} />
-              </View>
-
-              
-
               <View style={styles.bottomSpacing} />
             </View>
           </ScrollView>
@@ -356,32 +307,36 @@ const styles = StyleSheet.create({
   },
   headerSection: {
     backgroundColor: COLORS.white,
-    paddingTop: 32,
-    paddingBottom: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingTop: 56,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-    marginBottom: 16,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.05)',
   },
   contentSection: {
     flex: 1,
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
   },
   legendContainer: {
     marginHorizontal: 16,
-    marginVertical: 8,
-    padding: 12,
+    marginVertical: 12,
+    padding: 16,
     backgroundColor: COLORS.white,
-    borderRadius: 8,
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(0, 0, 0, 0.03)',
   },
   horizontalContainer: {
     marginVertical: 10,

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   calendarHeader: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 6,
+    marginBottom: 12,
   },
   weekDayText: {
     width: 32,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   weekRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   dayCell: {
     width: 32,

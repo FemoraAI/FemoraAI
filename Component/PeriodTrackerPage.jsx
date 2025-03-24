@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import moment from 'moment';
 import { useUser } from './context/UserContext';
-import RecommendedReads from '../Component/RecommendedReads';
-import MoodLogger from './SymptomMoodLogger';
+
 import CircularPeriodTracker from './CircularPeriodTracker';
 
 // Earth tone color scheme
@@ -79,7 +78,7 @@ const PeriodTracker = () => {
         cycleLength={cycleLength}
         periodLength={periodLength}
       />
-      <MoodLogger />
+     
       
     </View>
   );
@@ -90,6 +89,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'transparent',
     paddingTop: 15,
+    marginBottom:20,
   },
 });
 
