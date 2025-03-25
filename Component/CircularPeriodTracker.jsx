@@ -79,14 +79,14 @@ const CircularPeriodTracker = ({
             cx={x}
             cy={y + 1}
             r="12"
-            fill="transparent"
-            stroke={isPeriodDate ? COLORS.primary : 'transparent'}
+            fill={isPeriodDate ? COLORS.primary : 'transparent'}
+            stroke={isPeriodDate ? 'transparent' : 'transparent'}
             strokeWidth="1"
           />
           <SvgText
             x={x}
             y={y + 5}
-            fill={isPeriodDate ? COLORS.primary : COLORS.lightText}
+            fill={isPeriodDate ? COLORS.white : COLORS.lightText}
             fontSize="12"
             textAnchor="middle"
             fontWeight={isPeriodDate ? 'bold' : 'normal'}

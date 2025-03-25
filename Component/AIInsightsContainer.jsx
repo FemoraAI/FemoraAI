@@ -186,6 +186,22 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
       transform: [{ rotateY: backInterpolate }]
     };
 
+    // Determine which image to use based on the card index
+    let frontImageSource;
+    switch (index) {
+      case 0:
+        frontImageSource = require('../assets/meditate.png');
+        break;
+      case 1:
+        frontImageSource = require('../assets/hydrate.png');
+        break;
+      case 2:
+        frontImageSource = require('../assets/nourishsmartly.png');
+        break;
+      default:
+        frontImageSource = require('../assets/meditate.png'); // Fallback to meditate.png
+    }
+
     return (
       <TouchableOpacity 
         key={index}
@@ -201,7 +217,7 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
         </Animated.View>
         <Animated.View style={[styles.card, styles.cardFront, backAnimatedStyle]}>
           <Image 
-            source={require('../assets/meditate.png')}
+            source={frontImageSource}
             style={styles.cardFrontImage}
             resizeMode="cover"
           />
