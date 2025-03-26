@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { Asset } from 'expo-asset';
 
 // Dummy data for posts
 const dummyPosts = [
@@ -103,6 +104,19 @@ const dummyPosts = [
     isAnonymous: true,
     timestamp: "4d ago",
     image: "https://images.unsplash.com/photo-1573739022854-abceaeb585dc?w=800&auto=format&fit=crop"
+  },
+  {
+    id: 7,
+    title: "Relationship Advice Needed",
+    author: "Anonymous",
+    category: "Spicy",
+    content: "Looking for advice on spicing up my relationship. What are some romantic date night ideas that have worked for you?",
+    likes: 42,
+    comments: 15,
+    isPinned: false,
+    isAnonymous: true,
+    timestamp: "5h ago",
+    image: null
   }
 ];
 
@@ -116,35 +130,66 @@ const categories = [
   },
   { 
     id: 2, 
+    name: "Spicy", 
+    icon: "whatshot", // Using a flame icon for spicy content
+    description: "Adult content & intimate discussions"
+  },
+  
+  { 
+    id: 3, 
     name: "Period Health", 
     icon: "favorite",
     description: "Menstrual wellness & tips"
   },
   { 
-    id: 3, 
+    id: 4, 
     name: "PCOS", 
     icon: "medical-services",
     description: "PCOS support & management"
   },
   { 
-    id: 4, 
+    id: 5, 
     name: "Mental Wellness", 
     icon: "psychology",
     description: "Mental health & support"
   },
   { 
-    id: 5, 
+    id: 6, 
     name: "Sexual Wellness", 
     icon: "spa",
     description: "Sexual health discussions"
   },
-  { 
-    id: 6, 
-    name: "Pregnancy", 
-    icon: "child-care",
-    description: "Pregnancy journey & support"
-  },
+
+  
 ];
+
+// Add this constant at the top level of your file after imports
+const profileImages = [
+  require('../assets/profile/bear.png'),
+  require('../assets/profile/cat.png'),
+  require('../assets/profile/deer.png'),
+  require('../assets/profile/giraffe.png'),
+  require('../assets/profile/meerkat.png'),
+    require('../assets/profile/owl.png'),
+  require('../assets/profile/panda.png'),
+    require('../assets/profile/sloth.png'),
+
+    require('../assets/profile/penguin.png'),
+
+
+  // Add all your profile images here
+];
+
+const profileImageCache = new Map();
+
+const getRandomProfileImage = (id) => {
+  if (profileImageCache.has(id)) {
+    return profileImageCache.get(id);
+  }
+  const randomImage = profileImages[Math.floor(Math.random() * profileImages.length)];
+  profileImageCache.set(id, randomImage);
+  return randomImage;
+};
 
 // Sort Modal implementation
 const SortModal = ({ visible, onClose, sortBy, setSortBy }) => {
@@ -273,7 +318,6 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -296,13 +340,13 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
       id: Date.now(),
       title: postTitle,
       content: postContent,
-      author: isAnonymous ? "Anonymous" : "Current User",
+      author: "Anonymous",
       category: selectedCategory || "General",
       image: imagePreview,
       likes: 0,
       comments: 0,
       isPinned: false,
-      isAnonymous,
+      isAnonymous: true,
       timestamp: "Just now",
     };
     
@@ -311,7 +355,6 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
     setPostTitle('');
     setPostContent('');
     setSelectedCategory('');
-    setIsAnonymous(false);
     setSelectedImage(null);
     setImagePreview(null);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -456,23 +499,6 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
                 ))}
               </View>
             </View>
-
-            <View style={styles.anonymousToggleContainer}>
-              <TouchableOpacity
-                style={styles.anonymousToggle}
-                onPress={() => {
-                  setIsAnonymous(!isAnonymous);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <MaterialIcons
-                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
-                  size={24}
-                  color={isAnonymous ? "#FF85A2" : "#8F90A6"}
-                />
-                <Text style={styles.anonymousText}>Post Anonymously</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -484,7 +510,6 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -494,7 +519,6 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
       setPostTitle(post.title);
       setPostContent(post.content);
       setSelectedCategory(post.category);
-      setIsAnonymous(post.isAnonymous);
       setImagePreview(post.image);
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -513,8 +537,8 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
       content: postContent,
       category: selectedCategory || post.category,
       image: imagePreview,
-      isAnonymous,
-      author: isAnonymous ? "Anonymous" : "Current User",
+      isAnonymous: true,
+      author: "Anonymous",
     };
     
     onEdit(editedPost);
@@ -658,23 +682,6 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-
-            <View style={styles.anonymousToggleContainer}>
-              <TouchableOpacity
-                style={styles.anonymousToggle}
-                onPress={() => {
-                  setIsAnonymous(!isAnonymous);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <MaterialIcons
-                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
-                  size={24}
-                  color={isAnonymous ? "#FF85A2" : "#8F90A6"}
-                />
-                <Text style={styles.anonymousText}>Post Anonymously</Text>
-              </TouchableOpacity>
             </View>
           </ScrollView>
         </Animated.View>
@@ -822,7 +829,10 @@ const CommentModal = ({ visible, onClose, postId }) => {
         stiffness: 100
       })}
     >
-      <Image source={{ uri: item.avatar }} style={styles.commentAvatar} />
+      <Image 
+        source={getRandomProfileImage(item.id)}
+        style={styles.commentAvatar} 
+      />
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentAuthor}>{item.author}</Text>
@@ -1047,12 +1057,12 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
         <View style={styles.postHeader}>
           <View style={styles.authorContainer}>
             {item.isAnonymous ? (
-              <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
-            ) : (
               <Image
-                source={{ uri: 'https://i.pravatar.cc/150?img=' + item.id }}
+                source={getRandomProfileImage(item.id)}
                 style={styles.authorAvatar}
               />
+            ) : (
+              <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
             )}
             <View>
               <Text style={styles.authorName}>{item.author}</Text>
@@ -1591,6 +1601,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     marginRight: 8,
+    backgroundColor: '#FFE4EC',
   },
   authorName: {
     fontSize: 14,
@@ -1933,21 +1944,6 @@ const styles = StyleSheet.create({
     color: '#FF85A2',
     fontWeight: '600',
   },
-  anonymousToggleContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 20,
-  },
-  anonymousToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  anonymousText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#4A4B57',
-  },
   floatingEmoji: {
     position: 'absolute',
     fontSize: 24,
@@ -2066,6 +2062,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 2,
     borderColor: '#FFE4EC',
+    backgroundColor: '#FFE4EC',
   },
   commentContent: {
     flex: 1,
