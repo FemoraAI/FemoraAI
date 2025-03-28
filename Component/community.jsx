@@ -1244,6 +1244,65 @@ const getTimeAgo = (timestamp) => {
   return `${months} month${months !== 1 ? 's' : ''} ago`;
 };
 
+const NotificationPopup = ({ visible, onClose, onDisable }) => {
+  const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true
+      }).start();
+    } else {
+      scaleAnim.setValue(0);
+    }
+  }, [visible]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={styles.notificationPopupOverlay}>
+        <Animated.View 
+          style={[
+            styles.notificationPopupContent,
+            {
+              transform: [{ scale: scaleAnim }]
+            }
+          ]}
+        >
+          <View style={styles.notificationHeader}>
+            <MaterialIcons name="notifications-active" size={24} color="#FF85A2" />
+            <Text style={styles.notificationTitle}>Notifications Enabled</Text>
+          </View>
+          <Text style={styles.notificationText}>
+            You'll now receive updates about this community
+          </Text>
+          <View style={styles.notificationButtons}>
+            <TouchableOpacity
+              style={[styles.notificationButton, styles.disableNotificationButton]}
+              onPress={onDisable}
+            >
+              <Text style={styles.disableNotificationText}>Disable Notifications</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.notificationButton, styles.okayButton]}
+              onPress={onClose}
+            >
+              <Text style={styles.okayButtonText}>Okay</Text>
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+};
+
 const Community = () => {
   const insets = useSafeAreaInsets();
   const { userData } = useUser();
@@ -1259,6 +1318,8 @@ const Community = () => {
   const [joinedCommunities, setJoinedCommunities] = useState(new Set(['All']));
   const welcomeAnimation = useRef(new Animated.Value(0)).current;
   const giftAnimation = useRef(new Animated.Value(0)).current;
+  const [showNotificationPopup, setShowNotificationPopup] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState({});
   const [loading, setLoading] = useState(true);
   
   // Animation values
@@ -1453,6 +1514,28 @@ const Community = () => {
     );
   }
 
+  const handleJoinCommunity = (category) => {
+    setJoinedCommunities(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(category)) {
+        newSet.delete(category);
+        setNotificationsEnabled(prev => ({ ...prev, [category]: false }));
+      } else {
+        newSet.add(category);
+        setNotificationsEnabled(prev => ({ ...prev, [category]: true }));
+        setShowNotificationPopup(true);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+      return newSet;
+    });
+  };
+
+  const handleDisableNotifications = () => {
+    setNotificationsEnabled(prev => ({ ...prev, [selectedCategory]: false }));
+    setShowNotificationPopup(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.headerContainer}>
@@ -1493,31 +1576,50 @@ const Community = () => {
         )}
         ListHeaderComponent={() => selectedCategory !== "All" && selectedCategory !== "My Posts" ? (
           <View style={styles.joinButtonWrapper}>
-            <TouchableOpacity
-              onPress={() => {
-                setJoinedCommunities(prev => {
-                  const newSet = new Set(prev);
-                  if (newSet.has(selectedCategory)) {
-                    newSet.delete(selectedCategory);
-                  } else {
-                    newSet.add(selectedCategory);
-                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                  }
-                  return newSet;
-                });
-              }}
-              style={[
-                styles.joinCommunityButton,
-                joinedCommunities.has(selectedCategory) && styles.joinedCommunityButton
-              ]}
-            >
-              <Text style={[
-                styles.joinButtonText,
-                joinedCommunities.has(selectedCategory) && styles.joinedButtonText
-              ]}>
-                {joinedCommunities.has(selectedCategory) ? 'Joined' : 'Join'}
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.joinButtonsContainer}>
+              <TouchableOpacity
+                onPress={() => handleJoinCommunity(selectedCategory)}
+                style={[
+                  styles.joinCommunityButton,
+                  joinedCommunities.has(selectedCategory) && styles.joinedCommunityButton
+                ]}
+              >
+                <Text style={[
+                  styles.joinButtonText,
+                  joinedCommunities.has(selectedCategory) && styles.joinedButtonText
+                ]}>
+                  {joinedCommunities.has(selectedCategory) ? 'Joined' : 'Join'}
+                </Text>
+              </TouchableOpacity>
+              {joinedCommunities.has(selectedCategory) && (
+                <TouchableOpacity
+                  style={[
+                    styles.notificationToggleButton,
+                    notificationsEnabled[selectedCategory] && styles.notificationToggleButtonActive
+                  ]}
+                  onPress={() => {
+                    if (notificationsEnabled[selectedCategory]) {
+                      setShowNotificationPopup(true);
+                    } else {
+                      setNotificationsEnabled(prev => ({ ...prev, [selectedCategory]: true }));
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    }
+                  }}
+                >
+                  <MaterialIcons 
+                    name={notificationsEnabled[selectedCategory] ? "notifications-active" : "notifications-off"} 
+                    size={20} 
+                    color={notificationsEnabled[selectedCategory] ? "#FF85A2" : "#8F90A6"} 
+                  />
+                  <Text style={[
+                    styles.notificationToggleText,
+                    notificationsEnabled[selectedCategory] && styles.notificationToggleTextActive
+                  ]}>
+                    {notificationsEnabled[selectedCategory] ? 'Notifications On' : 'Enable Notifications'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ) : null}
         refreshControl={
@@ -1558,6 +1660,12 @@ const Community = () => {
           <Text style={styles.floatingButtonText}>New post</Text>
         </View>
       </TouchableOpacity>
+
+      <NotificationPopup
+        visible={showNotificationPopup}
+        onClose={() => setShowNotificationPopup(false)}
+        onDisable={handleDisableNotifications}
+      />
     </SafeAreaView>
   );
 };
@@ -2262,41 +2370,130 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     marginBottom: 16,
   },
+  joinButtonsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
   joinCommunityButton: {
     backgroundColor: '#FF85A2',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 20,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#FF85A2',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    flex: 1,
+    height: 48,
   },
   joinedCommunityButton: {
-    backgroundColor: '#8F90A6',
-    shadowColor: '#8F90A6',
+    backgroundColor: '#FFE4EC',
+    borderColor: '#FF85A2',
+    borderWidth: 1,
   },
   joinButtonText: {
-    color: '#ffffff',
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  joinedButtonText: {
+    color: '#FF85A2',
+  },
+  notificationToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8F8F8',
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderRadius: 20,
+    height: 48,
+    flex: 1,
+  },
+  notificationToggleButtonActive: {
+    backgroundColor: '#FFE4EC',
+    borderColor: '#FF85A2',
+    borderWidth: 1,
+  },
+  notificationToggleText: {
+    color: '#8F90A6',
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  notificationToggleTextActive: {
+    color: '#FF85A2',
+  },
+  notificationPopupOverlay: {
+    flex: 1,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  notificationPopupContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 320,
+    alignItems: 'center',
+    shadowColor: '#FF85A2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  notificationTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2D2D3A',
+    marginLeft: 8,
+  },
+  notificationText: {
+    fontSize: 14,
+    color: '#4A4B57',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  notificationButtons: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  notificationButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
+  },
+  disableNotificationButton: {
+    backgroundColor: '#FFE4EC',
+  },
+  okayButton: {
+    backgroundColor: '#FF85A2',
+  },
+  disableNotificationText: {
+    color: '#FF85A2',
     fontSize: 14,
     fontWeight: '600',
   },
-  joinedButtonText: {
-    color: '#ffffff',
-  },
-  deleteButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-  },
-  newPostForm: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  newPostFormContent: {
-    paddingBottom: 40,
+  okayButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   heartAnimationContainer: {
     position: 'absolute',
