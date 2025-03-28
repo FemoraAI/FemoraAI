@@ -202,8 +202,8 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: 15,
-    paddingBottom: 90, // Match the bottom nav bar height
+    paddingTop: 5,
+    paddingBottom: 5, // Match the bottom nav bar height
   },
   sectionTitle: {
     fontSize: 24,

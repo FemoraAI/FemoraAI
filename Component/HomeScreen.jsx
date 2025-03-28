@@ -16,6 +16,16 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import CircularTracker from '../Component/PeriodTrackerPage'; // Ensure this component is correctly imported
 import { useUser } from './context/UserContext'; 
 import { useNavigation } from '@react-navigation/native';
+import RecommendedReads from '../Component/RecommendedReads';
+import AIInsightsContainer from '../Component/AIInsightsContainer';
+import PeriodGapChart from '../Component/PeriodGapChart';
+
+const PHASES = {
+  menstrual: { name: 'Menstrual Phase' },
+  follicular: { name: 'Follicular Phase',},
+  ovulation: { name: 'Ovulation Phase',  },
+  luteal: { name: 'Luteal Phase', },
+};
 
 const PeriodCheckDialog = ({ visible, onResponse }) => {
   return (
@@ -121,35 +131,45 @@ const HomeScreen = () => {
                 </Text>
               )}
             </View>
-            <TouchableOpacity 
-              style={styles.profileButton} 
-              onPress={() => navigation.navigate('ProfileManagement')}
-            >
-              {userData.profilePic ? (
-                <Image 
-                  source={{ uri: userData.profilePic }} 
-                  style={styles.profileImage} 
-                />
-              ) : (
-                <View style={styles.defaultAvatarContainer}>
-                  <Icon name="person" size={24} color="#FF6B6B" />
-                </View>
-              )}
-            </TouchableOpacity>
+            <View style={styles.headerButtons}>
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => {/* Will be implemented later */}}
+              >
+                <Icon name="heart" size={24} color="#FF6B6B" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.profileButton} 
+                onPress={() => navigation.navigate('ProfileManagement')}
+              >
+                {userData.profilePic ? (
+                  <Image 
+                    source={{ uri: userData.profilePic }} 
+                    style={styles.profileImage} 
+                  />
+                ) : (
+                  <View style={styles.defaultAvatarContainer}>
+                    <Icon name="person" size={24} color="#FF6B6B" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </View>
       <View style={styles.circularTrackerContainer}>
         <CircularTracker />
       </View>
+      <AIInsightsContainer />
+      <View style={styles.recommendedReadsContainer}>
+        <RecommendedReads phases={PHASES} />
+      </View>
+      <View>
+        <PeriodGapChart userData={userData} />
+      </View>
     </>
   ), [userData.name, userData.profilePic, userData.isLatePeriod, userData.daysLate]);
 
-  const renderQuickActions = useCallback(() => (
-    <View style={styles.quickActionsContainer}>
-      {/* Empty container kept for future use if needed */}
-    </View>
-  ), [navigation]);
 
   return (
     <LinearGradient
@@ -174,7 +194,7 @@ const HomeScreen = () => {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
       />
-      
+
       <PeriodCheckDialog
         visible={showPeriodCheck}
         onResponse={handlePeriodResponse}
@@ -189,8 +209,8 @@ const styles = StyleSheet.create({
     height: Dimensions.get('window').height + (Platform.OS === 'ios' ? 50 : StatusBar.currentHeight),
   },
   container: {
-    paddingHorizontal: 10,
-    paddingBottom: 20,
+    flexGrow: 1,
+    paddingBottom: Platform.OS === 'ios' ? 100 : 80,
   },
   headerContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
@@ -204,6 +224,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    width: '100%',
   },
   header: {
     paddingHorizontal: 20,
@@ -361,6 +382,38 @@ const styles = StyleSheet.create({
     color: '#FF4D6D',
     fontSize: 14,
     marginTop: 4,
+  },
+  recommendedReadsContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+    width: '100%',
+  },
+  periodGapChartContainer: {
+    marginHorizontal: 16,
+    marginVertical: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  iconButton: {
+    height: 42,
+    width: 42,
+    borderRadius: 21,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 2,
+    borderColor: '#FFD4D4',
   },
 });
 

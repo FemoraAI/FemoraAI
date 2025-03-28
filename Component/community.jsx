@@ -17,12 +17,29 @@ import {
   Pressable,
   RefreshControl,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { Asset } from 'expo-asset';
+import { 
+  collection, 
+  addDoc, 
+  query, 
+  orderBy, 
+  onSnapshot, 
+  doc, 
+  updateDoc, 
+  deleteDoc,
+  serverTimestamp,
+  where,
+  increment
+} from 'firebase/firestore';
+import { db } from '../firebase.config';
+import { useUser } from './context/UserContext';
 
 // Dummy data for posts
 const dummyPosts = [
@@ -103,6 +120,19 @@ const dummyPosts = [
     isAnonymous: true,
     timestamp: "4d ago",
     image: "https://images.unsplash.com/photo-1573739022854-abceaeb585dc?w=800&auto=format&fit=crop"
+  },
+  {
+    id: 7,
+    title: "Relationship Advice Needed",
+    author: "Anonymous",
+    category: "Spicy",
+    content: "Looking for advice on spicing up my relationship. What are some romantic date night ideas that have worked for you?",
+    likes: 42,
+    comments: 15,
+    isPinned: false,
+    isAnonymous: true,
+    timestamp: "5h ago",
+    image: null
   }
 ];
 
@@ -116,35 +146,69 @@ const categories = [
   },
   { 
     id: 2, 
+    name: "My Posts", 
+    icon: "person", // Using person icon for My Posts
+    description: "View your posts"
+  },
+  { 
+    id: 3, 
+    name: "Spicy", 
+    icon: "whatshot",
+    description: "Adult content & intimate discussions"
+  },
+  { 
+    id: 4, 
     name: "Period Health", 
     icon: "favorite",
     description: "Menstrual wellness & tips"
   },
   { 
-    id: 3, 
+    id: 5, 
     name: "PCOS", 
     icon: "medical-services",
     description: "PCOS support & management"
   },
   { 
-    id: 4, 
+    id: 6, 
     name: "Mental Wellness", 
     icon: "psychology",
     description: "Mental health & support"
   },
   { 
-    id: 5, 
+    id: 7, 
     name: "Sexual Wellness", 
     icon: "spa",
     description: "Sexual health discussions"
   },
-  { 
-    id: 6, 
-    name: "Pregnancy", 
-    icon: "child-care",
-    description: "Pregnancy journey & support"
-  },
 ];
+
+// Add this constant at the top level of your file after imports
+const profileImages = [
+  require('../assets/profile/bear.png'),
+  require('../assets/profile/cat.png'),
+  require('../assets/profile/deer.png'),
+  require('../assets/profile/giraffe.png'),
+  require('../assets/profile/meerkat.png'),
+    require('../assets/profile/owl.png'),
+  require('../assets/profile/panda.png'),
+    require('../assets/profile/sloth.png'),
+
+    require('../assets/profile/penguin.png'),
+
+
+  // Add all your profile images here
+];
+
+const profileImageCache = new Map();
+
+const getRandomProfileImage = (id) => {
+  if (profileImageCache.has(id)) {
+    return profileImageCache.get(id);
+  }
+  const randomImage = profileImages[Math.floor(Math.random() * profileImages.length)];
+  profileImageCache.set(id, randomImage);
+  return randomImage;
+};
 
 // Sort Modal implementation
 const SortModal = ({ visible, onClose, sortBy, setSortBy }) => {
@@ -273,10 +337,10 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
+  const { userData } = useUser();
 
   useEffect(() => {
     if (visible) {
@@ -291,30 +355,32 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
     }
   }, [visible]);
 
-  const handlePost = () => {
-    const newPost = {
-      id: Date.now(),
-      title: postTitle,
-      content: postContent,
-      author: isAnonymous ? "Anonymous" : "Current User",
-      category: selectedCategory || "General",
-      image: imagePreview,
-      likes: 0,
-      comments: 0,
-      isPinned: false,
-      isAnonymous,
-      timestamp: "Just now",
-    };
-    
-    onPost(newPost);
-    onClose();
-    setPostTitle('');
-    setPostContent('');
-    setSelectedCategory('');
-    setIsAnonymous(false);
-    setSelectedImage(null);
-    setImagePreview(null);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  const handlePost = async () => {
+    try {
+      const newPost = {
+        title: postTitle,
+        content: postContent,
+        category: selectedCategory || "General",
+        image: imagePreview,
+        timestamp: serverTimestamp(),
+        likes: 0,
+        comments: 0,
+        userId: userData.uid,
+        author: "Anonymous",
+        isAnonymous: true,
+      };
+      
+      await addDoc(collection(db, 'posts'), newPost);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onPost(newPost);
+      setPostTitle('');
+      setPostContent('');
+      setSelectedCategory('');
+      setSelectedImage(null);
+      setImagePreview(null);
+    } catch (error) {
+      console.error('Error adding post:', error);
+    }
   };
 
   const handleImagePick = async () => {
@@ -429,7 +495,7 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
             <View style={styles.categorySelector}>
               <Text style={styles.selectorLabel}>Category</Text>
               <View style={styles.categoryGrid}>
-                {categories.slice(1).map((category) => (
+                {categories.filter(category => category.name !== "My Posts" && category.name !== "All").map((category) => (
                   <TouchableOpacity
                     key={category.id}
                     style={[
@@ -456,23 +522,6 @@ const NewPostModal = ({ visible, onClose, onPost }) => {
                 ))}
               </View>
             </View>
-
-            <View style={styles.anonymousToggleContainer}>
-              <TouchableOpacity
-                style={styles.anonymousToggle}
-                onPress={() => {
-                  setIsAnonymous(!isAnonymous);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <MaterialIcons
-                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
-                  size={24}
-                  color={isAnonymous ? "#FF85A2" : "#8F90A6"}
-                />
-                <Text style={styles.anonymousText}>Post Anonymously</Text>
-              </TouchableOpacity>
-            </View>
           </ScrollView>
         </Animated.View>
       </KeyboardAvoidingView>
@@ -484,17 +533,16 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
   const [postTitle, setPostTitle] = useState('');
   const [postContent, setPostContent] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [isAnonymous, setIsAnonymous] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const scaleAnim = useRef(new Animated.Value(0)).current;
+  const { userData } = useUser();
 
   useEffect(() => {
     if (visible) {
       setPostTitle(post.title);
       setPostContent(post.content);
       setSelectedCategory(post.category);
-      setIsAnonymous(post.isAnonymous);
       setImagePreview(post.image);
       Animated.spring(scaleAnim, {
         toValue: 1,
@@ -507,17 +555,24 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
     }
   }, [visible, post]);
 
-  const handleEditSubmit = () => {
-    const editedPost = {
-      title: postTitle,
-      content: postContent,
-      category: selectedCategory || post.category,
-      image: imagePreview,
-      isAnonymous,
-      author: isAnonymous ? "Anonymous" : "Current User",
-    };
-    
-    onEdit(editedPost);
+  const handleEditSubmit = async () => {
+    try {
+      const editedPost = {
+        title: postTitle,
+        content: postContent,
+        category: selectedCategory || post.category,
+        image: imagePreview,
+        isAnonymous: true,
+        author: "Anonymous",
+        lastEdited: serverTimestamp()
+      };
+      
+      await updateDoc(doc(db, 'posts', post.id), editedPost);
+      onEdit(editedPost);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch (error) {
+      console.error('Error updating post:', error);
+    }
   };
 
   const handleImagePick = async () => {
@@ -632,7 +687,7 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
             <View style={styles.categorySelector}>
               <Text style={styles.selectorLabel}>Category</Text>
               <View style={styles.categoryGrid}>
-                {categories.slice(1).map((category) => (
+                {categories.filter(category => category.name !== "My Posts" && category.name !== "All").map((category) => (
                   <TouchableOpacity
                     key={category.id}
                     style={[
@@ -658,23 +713,6 @@ const EditPostModal = ({ visible, onClose, onEdit, post }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-            </View>
-
-            <View style={styles.anonymousToggleContainer}>
-              <TouchableOpacity
-                style={styles.anonymousToggle}
-                onPress={() => {
-                  setIsAnonymous(!isAnonymous);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-              >
-                <MaterialIcons
-                  name={isAnonymous ? "check-box" : "check-box-outline-blank"}
-                  size={24}
-                  color={isAnonymous ? "#FF85A2" : "#8F90A6"}
-                />
-                <Text style={styles.anonymousText}>Post Anonymously</Text>
-              </TouchableOpacity>
             </View>
           </ScrollView>
         </Animated.View>
@@ -753,6 +791,7 @@ const CommentModal = ({ visible, onClose, postId }) => {
   const [replyTo, setReplyTo] = useState(null);
   const modalAnimation = useRef(new Animated.Value(0)).current;
   const inputRef = useRef(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (visible) {
@@ -765,28 +804,54 @@ const CommentModal = ({ visible, onClose, postId }) => {
     }
   }, [visible]);
 
-  const handleSubmit = () => {
+  useEffect(() => {
+    if (!visible || !postId) return;
+
+    const commentsQuery = query(
+      collection(db, 'posts', postId, 'comments'),
+      orderBy('timestamp', 'desc')
+    );
+
+    const unsubscribe = onSnapshot(commentsQuery, (snapshot) => {
+      const commentsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate().toLocaleString() || 'Just now'
+      }));
+      setComments(commentsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [visible, postId]);
+
+  const handleSubmit = async () => {
     if (!comment.trim()) return;
     
-    setIsSubmitting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
-    const newComment = {
-      id: Date.now(),
-      text: comment,
-      author: "Current User",
-      timestamp: "Just now",
-      avatar: "https://i.pravatar.cc/150",
-      likes: 0,
-      isLiked: false,
-      replies: [],
-      replyTo: replyTo
-    };
-    
-    setComments(prev => [newComment, ...prev]);
-    setComment('');
-    setReplyTo(null);
-    setIsSubmitting(false);
+    try {
+      const newComment = {
+        text: comment,
+        author: "Anonymous",
+        timestamp: serverTimestamp(),
+        likes: 0,
+        isLiked: false,
+        replyTo: replyTo?.id || null
+      };
+      
+      await addDoc(collection(db, 'posts', postId, 'comments'), newComment);
+      
+      // Update comment count in the post
+      const postRef = doc(db, 'posts', postId);
+      await updateDoc(postRef, {
+        comments: increment(1)
+      });
+
+      setComment('');
+      setReplyTo(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      console.error('Error adding comment:', error);
+    }
   };
 
   const handleLikeComment = (commentId) => {
@@ -822,7 +887,10 @@ const CommentModal = ({ visible, onClose, postId }) => {
         stiffness: 100
       })}
     >
-      <Image source={{ uri: item.avatar }} style={styles.commentAvatar} />
+      <Image 
+        source={getRandomProfileImage(item.id)}
+        style={styles.commentAvatar} 
+      />
       <View style={styles.commentContent}>
         <View style={styles.commentHeader}>
           <Text style={styles.commentAuthor}>{item.author}</Text>
@@ -929,6 +997,9 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
   const heartScale = useRef(new Animated.Value(0)).current;
   const heartOpacity = useRef(new Animated.Value(0)).current;
   const lastTap = useRef(null);
+  const { userData } = useUser();
+
+  const isUserPost = item.userId === userData.uid;
 
   const handleDoubleTap = (event) => {
     const now = Date.now();
@@ -994,9 +1065,13 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
     lastTap.current = now;
   };
 
-  const handleDelete = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPosts(prevPosts => prevPosts.filter(post => post.id !== item.id));
+  const handleDelete = async () => {
+    try {
+      await deleteDoc(doc(db, 'posts', item.id));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      console.error('Error deleting post:', error);
+    }
   };
 
   const handleEdit = (editedPost) => {
@@ -1047,12 +1122,12 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
         <View style={styles.postHeader}>
           <View style={styles.authorContainer}>
             {item.isAnonymous ? (
-              <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
-            ) : (
               <Image
-                source={{ uri: 'https://i.pravatar.cc/150?img=' + item.id }}
+                source={getRandomProfileImage(item.id)}
                 style={styles.authorAvatar}
               />
+            ) : (
+              <MaterialIcons name="person-outline" size={24} color="#8F90A6" />
             )}
             <View>
               <Text style={styles.authorName}>{item.author}</Text>
@@ -1103,12 +1178,8 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
             <MaterialIcons name="chat-bubble-outline" size={20} color="#8F90A6" />
             <Text style={styles.footerButtonText}>{item.comments}</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.footerButton}>
-            <MaterialIcons name="share" size={20} color="#8F90A6" />
-          </TouchableOpacity>
 
-          {(item.author === "Current User" || (item.isAnonymous && item.timestamp === "Just now")) && (
+          {isUserPost && (
             <>
               <TouchableOpacity 
                 style={[styles.footerButton, { marginLeft: 'auto' }]}
@@ -1143,8 +1214,39 @@ const PostItem = React.memo(({ item, index, scrollY, likedPosts, handleLike, set
   );
 });
 
+const getTimeAgo = (timestamp) => {
+  if (!timestamp) return 'Just now';
+  
+  const now = new Date();
+  const date = timestamp.toDate();
+  const seconds = Math.floor((now - date) / 1000);
+  
+  if (seconds < 60) {
+    return `${seconds} seconds ago`;
+  }
+  
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) {
+    return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
+  }
+  
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  }
+  
+  const days = Math.floor(hours / 24);
+  if (days < 30) {
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  }
+  
+  const months = Math.floor(days / 30);
+  return `${months} month${months !== 1 ? 's' : ''} ago`;
+};
+
 const Community = () => {
   const insets = useSafeAreaInsets();
+  const { userData } = useUser();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1157,6 +1259,7 @@ const Community = () => {
   const [joinedCommunities, setJoinedCommunities] = useState(new Set(['All']));
   const welcomeAnimation = useRef(new Animated.Value(0)).current;
   const giftAnimation = useRef(new Animated.Value(0)).current;
+  const [loading, setLoading] = useState(true);
   
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -1177,25 +1280,47 @@ const Community = () => {
     extrapolate: 'clamp'
   });
 
-  const handleLike = useCallback((postId) => {
-    setLikedPosts(prev => ({
-      ...prev,
-      [postId]: !prev[postId]
-    }));
-    
-    setPosts(prevPosts => 
-      prevPosts.map(post => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            likes: post.likes + (likedPosts[postId] ? -2 : 2)
-          };
-        }
-        return post;
-      })
+  // Set up real-time listener for posts
+  useEffect(() => {
+    const postsQuery = query(
+      collection(db, 'posts'), 
+      orderBy('timestamp', 'desc')
     );
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    const unsubscribe = onSnapshot(postsQuery, (snapshot) => {
+      const postsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: getTimeAgo(doc.data().timestamp),
+        author: "Anonymous", // Always show as Anonymous in frontend
+        isAnonymous: true
+      }));
+      setPosts(postsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Modify handleLike function to update Firebase
+  const handleLike = useCallback(async (postId) => {
+    try {
+      const postRef = doc(db, 'posts', postId);
+      const newLikeStatus = !likedPosts[postId];
+      
+      await updateDoc(postRef, {
+        likes: newLikeStatus ? increment(1) : increment(-1)
+      });
+
+      setLikedPosts(prev => ({
+        ...prev,
+        [postId]: newLikeStatus
+      }));
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.error('Error updating like:', error);
+    }
   }, [likedPosts]);
 
   // Scroll haptics handler
@@ -1209,6 +1334,7 @@ const Community = () => {
     const isJoined = joinedCommunities.has(item.name);
     return (
       <TouchableOpacity
+        key={item.id.toString()}
         style={[
           styles.communityButton,
           selectedCategory === item.name && styles.communityButtonActive,
@@ -1315,15 +1441,17 @@ const Community = () => {
         >
           <MaterialIcons name="sort" size={24} color="#FF85A2" />
         </TouchableOpacity>
-        <TouchableOpacity
-          onPress={() => setShowNewPostModal(true)}
-          style={styles.newPostButton}
-        >
-          <MaterialIcons name="add" size={24} color="#ffffff" />
-        </TouchableOpacity>
       </View>
     </Animated.View>
   );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF85A2" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={[styles.container, { paddingTop: insets.top }]}>
@@ -1347,15 +1475,23 @@ const Community = () => {
       </View>
 
       <Animated.FlatList
-        data={sortPosts(posts.filter(post => 
-          selectedCategory === "All" || post.category === selectedCategory
-        ))}
+        data={sortPosts(posts.filter(post => {
+          if (selectedCategory === "My Posts") {
+            return post.userId === userData?.uid;
+          }
+          return selectedCategory === "All" || post.category === selectedCategory;
+        }))}
         renderItem={renderPost}
         keyExtractor={item => item.id.toString()}
         contentContainerStyle={styles.postsContainer}
         onScroll={handleScroll}
         scrollEventThrottle={16}
-        ListHeaderComponent={() => selectedCategory !== "All" ? (
+        ListEmptyComponent={() => (
+          <View style={styles.emptyStateContainer}>
+            <Text style={styles.emptyStateText}>No posts yet</Text>
+          </View>
+        )}
+        ListHeaderComponent={() => selectedCategory !== "All" && selectedCategory !== "My Posts" ? (
           <View style={styles.joinButtonWrapper}>
             <TouchableOpacity
               onPress={() => {
@@ -1412,8 +1548,18 @@ const Community = () => {
         onClose={() => setShowWelcomeModal(false)}
         animation={welcomeAnimation}
       />
+
+      <TouchableOpacity
+        style={styles.floatingActionButton}
+        onPress={() => setShowNewPostModal(true)}
+      >
+        <View style={{flexDirection: 'row', alignItems: 'center'}}>
+          <Ionicons name="create-outline" size={24} color="#ffffff" />
+          <Text style={styles.floatingButtonText}>New post</Text>
+        </View>
+      </TouchableOpacity>
     </SafeAreaView>
-    );
+  );
 };
 
 const styles = StyleSheet.create({
@@ -1453,19 +1599,13 @@ const styles = StyleSheet.create({
     marginRight: 12,
     padding: 8,
   },
-  newPostButton: {
-    width: 40,
-    height: 40,
+  myPostsButton: {
+    padding: 8,
     borderRadius: 20,
-    backgroundColor: '#FF85A2',
-        justifyContent: 'center',
-        alignItems: 'center',
-    shadowColor: '#FF85A2',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-    transform: [{ translateY: -2 }],
+    marginLeft: 8,
+  },
+  myPostsButtonActive: {
+    backgroundColor: '#FFE4EC',
   },
   categoriesContainer: {
     backgroundColor: '#FFFFFF',
@@ -1591,6 +1731,7 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     marginRight: 8,
+    backgroundColor: '#FFE4EC',
   },
   authorName: {
     fontSize: 14,
@@ -1759,20 +1900,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 8,
+    paddingBottom: 24,
   },
   newPostHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    padding: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
+    marginBottom: 16,
   },
   closeButton: {
-    padding: 8,
+    padding: 12,
     borderRadius: 20,
     backgroundColor: '#F8F8F8',
   },
@@ -1782,8 +1925,8 @@ const styles = StyleSheet.create({
     color: '#2D2D3A',
   },
   postButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     backgroundColor: '#FF85A2',
     borderRadius: 20,
     shadowColor: '#FF85A2',
@@ -1807,8 +1950,7 @@ const styles = StyleSheet.create({
   formSection: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    marginBottom: 16,
-    padding: 16,
+    marginBottom: 24,
   },
   titleInput: {
     fontSize: 18,
@@ -1823,6 +1965,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: 56,
   },
   contentInput: {
     fontSize: 16,
@@ -1831,23 +1974,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     borderRadius: 16,
     height: 200,
-    marginBottom: 16,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    textAlignVertical: 'top',
   },
   imageContainer: {
     height: 120,
     marginBottom: 16,
   },
   imagePreviewContainer: {
-    height: 100,
+    height: 200,
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
     backgroundColor: '#F8F8F8',
+    marginBottom: 16,
   },
   imagePreview: {
     width: '100%',
@@ -1870,7 +2015,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F8F8',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -1887,18 +2032,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 16,
     borderRadius: 16,
-    marginBottom: 16,
+    marginBottom: 24,
   },
   selectorLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: '#2D2D3A',
-    marginBottom: 12,
+    marginBottom: 16,
+    marginLeft: 4,
   },
   categoryGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginHorizontal: -4,
+    gap: 8,
   },
   categoryChip: {
     flexDirection: 'row',
@@ -1932,21 +2079,6 @@ const styles = StyleSheet.create({
   categoryChipTextActive: {
     color: '#FF85A2',
     fontWeight: '600',
-  },
-  anonymousToggleContainer: {
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    marginBottom: 20,
-  },
-  anonymousToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  anonymousText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#4A4B57',
   },
   floatingEmoji: {
     position: 'absolute',
@@ -2066,6 +2198,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     borderWidth: 2,
     borderColor: '#FFE4EC',
+    backgroundColor: '#FFE4EC',
   },
   commentContent: {
     flex: 1,
@@ -2160,10 +2293,11 @@ const styles = StyleSheet.create({
   },
   newPostForm: {
     flex: 1,
+    paddingHorizontal: 20,
   },
   newPostFormContent: {
     paddingBottom: 40,
-    },
+  },
   heartAnimationContainer: {
     position: 'absolute',
     width: 100,
@@ -2171,6 +2305,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 999,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF'
+  },
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: '#8F90A6',
+    textAlign: 'center',
+  },
+  floatingActionButton: {
+    position: 'absolute',
+    bottom: 125,
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FF85A2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF85A2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+  },
+  floatingButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    paddingHorizontal: 10,
+    fontWeight: '600',
   },
 });
 
