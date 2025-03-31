@@ -31,7 +31,14 @@ export const UserProvider = ({ children }) => {
     isLatePeriod: false,
     daysLate: 0,
     loggedPeriods: [],
-    authToken: null
+    authToken: null,
+    currentPhase: null,
+    phaseInsights: {
+      menstrual: { lastSeen: null },
+      follicular: { lastSeen: null },
+      ovulation: { lastSeen: null },
+      luteal: { lastSeen: null }
+    }
   })
 
   const [isLoading, setIsLoading] = useState(true)
@@ -168,7 +175,14 @@ export const UserProvider = ({ children }) => {
         isLatePeriod: false,
         daysLate: 0,
         loggedPeriods: [],
-        authToken: null
+        authToken: null,
+        currentPhase: null,
+        phaseInsights: {
+          menstrual: { lastSeen: null },
+          follicular: { lastSeen: null },
+          ovulation: { lastSeen: null },
+          luteal: { lastSeen: null }
+        }
       });
       
       setError(null);
@@ -321,24 +335,72 @@ export const UserProvider = ({ children }) => {
     return activeDates
   }
 
-  const getCurrentPhase = () => {
-    const today = moment()
-    const lastPeriodStart = moment(userData.lastPeriodStart)
-    const cycleLength = Number.parseInt(userData.cycleDays) || 28
-    const periodLength = Number.parseInt(userData.periodDays) || 5
+  const updatePhaseAndInsights = useCallback(async (phase, hasOpenedInsights = false) => {
+    try {
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
 
-    const currentCycleStart = moment(lastPeriodStart)
+      if (!currentUser) {
+        throw new Error("No authenticated user found");
+      }
+
+      const userRef = doc(db, "users", currentUser.uid);
+      const timestamp = new Date().toISOString();
+
+      const updateData = {
+        currentPhase: phase,
+        phaseInsights: {
+          ...userData.phaseInsights,
+          [phase]: { 
+            lastSeen: hasOpenedInsights ? timestamp : userData.phaseInsights[phase].lastSeen 
+          }
+        },
+        lastUpdated: timestamp
+      };
+
+      await setDoc(userRef, updateData, { merge: true });
+      
+      setUserData(prev => ({
+        ...prev,
+        ...updateData
+      }));
+    } catch (error) {
+      console.error("Error updating phase and insights:", error);
+      setError(error.message);
+      throw error;
+    }
+  }, [userData.phaseInsights]);
+
+  const getCurrentPhase = useCallback(() => {
+    const today = moment();
+    const lastPeriodStart = moment(userData.lastPeriodStart);
+    const cycleLength = Number.parseInt(userData.cycleDays) || 28;
+    const periodLength = Number.parseInt(userData.periodDays) || 5;
+
+    const currentCycleStart = moment(lastPeriodStart);
     while (currentCycleStart.add(cycleLength, "days").isAfter(today)) {
-      currentCycleStart.subtract(cycleLength, "days")
+      currentCycleStart.subtract(cycleLength, "days");
     }
 
-    const dayInCycle = today.diff(currentCycleStart, "days") + 1
+    const dayInCycle = today.diff(currentCycleStart, "days") + 1;
 
-    if (dayInCycle <= periodLength) return { name: "Menstrual Phase", color: "#FF4D6D" }
-    if (dayInCycle < cycleLength * 0.3) return { name: "Follicular Phase", color: "#C77DFF" }
-    if (dayInCycle < cycleLength * 0.5) return { name: "Ovulation Phase", color: "#FFD166" }
-    return { name: "Luteal Phase", color: "#F8A978" }
-  }
+    let phase;
+    if (dayInCycle <= periodLength) {
+      phase = { name: "Menstrual Phase", color: "#FF4D6D" };
+    } else if (dayInCycle < cycleLength * 0.3) {
+      phase = { name: "Follicular Phase", color: "#C77DFF" };
+    } else if (dayInCycle < cycleLength * 0.5) {
+      phase = { name: "Ovulation Phase", color: "#FFD166" };
+    } else {
+      phase = { name: "Luteal Phase", color: "#F8A978" };
+    }
+
+    if (phase.name !== userData.currentPhase) {
+      updatePhaseAndInsights(phase.name.toLowerCase().replace(" phase", ""));
+    }
+
+    return phase;
+  }, [userData.lastPeriodStart, userData.cycleDays, userData.periodDays, userData.currentPhase, updatePhaseAndInsights]);
 
   const shouldShowPeriodCheck = () => {
     if (!userData.expectedPeriodDate) return false
@@ -410,7 +472,8 @@ export const UserProvider = ({ children }) => {
         getActiveDatesForMonth,
         getCurrentPhase,
         shouldShowPeriodCheck,
-        handlePeriodCheck
+        handlePeriodCheck,
+        updatePhaseAndInsights
       }}
     >
       {children}
