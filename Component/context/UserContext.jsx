@@ -1,9 +1,9 @@
 "use client"
 
-import { createContext, useState, useContext, useCallback } from "react"
+import { createContext, useState, useContext, useCallback, useEffect } from "react"
 import moment from "moment"
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
-import { getAuth } from "firebase/auth"
+import { getAuth, onAuthStateChanged } from "firebase/auth"
 import { db } from '../../firebase.config'
 
 const UserContext = createContext()
@@ -29,59 +29,155 @@ export const UserProvider = ({ children }) => {
     periodGaps: [],
     lastPeriodChecked: null,
     isLatePeriod: false,
-    daysLate: 0
+    daysLate: 0,
+    loggedPeriods: [],
+    authToken: null
   })
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
+
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
-    const doctorsRef = collection(db, "doctors")
-    const doctorQuery = query(doctorsRef, where("phone", "==", formattedPhone))
-    const doctorQuerySnapshot = await getDocs(doctorQuery)
-    return !doctorQuerySnapshot.empty
+    try {
+      const doctorsRef = collection(db, "doctors")
+      const doctorQuery = query(doctorsRef, where("phone", "==", formattedPhone))
+      const doctorQuerySnapshot = await getDocs(doctorQuery)
+      return !doctorQuerySnapshot.empty
+    } catch (error) {
+      console.error("Error checking doctor status:", error)
+      return false
+    }
   }, [])
 
-  const login = async () => {
-    const auth = getAuth()
-    const currentUser = auth.currentUser
-
-    if (currentUser) {
-      try {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid))
-        const formattedPhone = currentUser.phoneNumber
-        const isDoctor = await checkDoctorStatus(formattedPhone)
-
-        if (userDoc.exists()) {
-          setUserData((prev) => ({
-            ...prev,
-            ...userDoc.data(),
-            isLoggedIn: true,
-            isDoctor,
-            needsOnboarding: false,
-          }))
-        } else {
-          setUserData((prev) => ({
-            ...prev,
-            uid: currentUser.uid,
-            phone: formattedPhone,
-            isLoggedIn: true,
-            isDoctor,
-            needsOnboarding: true,
-          }))
-        }
-      } catch (error) {
-        console.error("Error in login:", error)
-      }
+  const checkUserExists = useCallback(async (uid) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", uid))
+      return userDoc.exists()
+    } catch (error) {
+      console.error("Error checking user existence:", error)
+      return false
     }
-  }
+  }, [])
 
-  const logout = () => {
-    setUserData((prev) => ({
-      ...prev,
-      isLoggedIn: false,
-      isDoctor: false,
-      uid: null,
-      needsOnboarding: true,
-    }))
-  }
+  const initializeUserData = useCallback(async (user, formattedPhone) => {
+    try {
+      const isDoctor = await checkDoctorStatus(formattedPhone)
+      const userExists = await checkUserExists(user.uid)
+      
+      if (userExists) {
+        const userDoc = await getDoc(doc(db, "users", user.uid))
+        const userData = userDoc.data()
+        
+        setUserData(prev => ({
+          ...prev,
+          ...userData,
+          isLoggedIn: true,
+          isDoctor,
+          needsOnboarding: false,
+          authToken: user.accessToken
+        }))
+      } else {
+        setUserData(prev => ({
+          ...prev,
+          uid: user.uid,
+          phone: formattedPhone,
+          isLoggedIn: true,
+          isDoctor,
+          needsOnboarding: !isDoctor,
+          authToken: user.accessToken,
+          createdAt: new Date().toISOString()
+        }))
+      }
+    } catch (error) {
+      console.error("Error initializing user data:", error)
+      setError(error.message)
+    }
+  }, [checkDoctorStatus, checkUserExists])
+
+  useEffect(() => {
+    const auth = getAuth()
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const formattedPhone = user.phoneNumber
+        await initializeUserData(user, formattedPhone)
+      } else {
+        setUserData(prev => ({
+          ...prev,
+          isLoggedIn: false,
+          isDoctor: false,
+          uid: null,
+          authToken: null
+        }))
+      }
+      setIsLoading(false)
+    })
+
+    return () => unsubscribe()
+  }, [initializeUserData])
+
+  const login = useCallback(async (userCredential) => {
+    try {
+      if (!userCredential || !userCredential.user) {
+        throw new Error('Invalid user credential');
+      }
+
+      const user = userCredential.user;
+      const formattedPhone = user.phoneNumber;
+      
+      if (!formattedPhone) {
+        throw new Error('Phone number not found');
+      }
+
+      await initializeUserData(user, formattedPhone);
+    } catch (error) {
+      console.error("Error in login:", error);
+      setError(error.message);
+      throw error;
+    }
+  }, [initializeUserData]);
+
+  const logout = useCallback(async () => {
+    try {
+      const auth = getAuth();
+      if (!auth.currentUser) {
+        throw new Error('No user is currently logged in');
+      }
+
+      await auth.signOut();
+      
+      // Reset all user data
+      setUserData({
+        uid: null,
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        profileImage: null,
+        lastPeriodStart: null,
+        periodDays: null,
+        cycleDays: null,
+        isLoggedIn: false,
+        isDoctor: false,
+        needsOnboarding: true,
+        createdAt: null,
+        lastUpdated: null,
+        onboardingCompleted: false,
+        expectedPeriodDate: null,
+        periodGaps: [],
+        lastPeriodChecked: null,
+        isLatePeriod: false,
+        daysLate: 0,
+        loggedPeriods: [],
+        authToken: null
+      });
+      
+      setError(null);
+    } catch (error) {
+      console.error("Error in logout:", error);
+      setError(error.message);
+      throw error;
+    }
+  }, []);
 
   const updateUserData = async (newData) => {
     try {
@@ -118,7 +214,7 @@ export const UserProvider = ({ children }) => {
 
       await setDoc(userRef, firestoreData, { merge: true })
 
-      setUserData((prev) => ({
+      setUserData(prev => ({
         ...prev,
         ...firestoreData,
         isLoggedIn: true,
@@ -126,6 +222,7 @@ export const UserProvider = ({ children }) => {
       }))
     } catch (error) {
       console.error("Error updating user data:", error)
+      setError(error.message)
       throw error
     }
   }
@@ -301,6 +398,8 @@ export const UserProvider = ({ children }) => {
     <UserContext.Provider
       value={{
         userData,
+        isLoading,
+        error,
         updateUserData,
         login,
         logout,

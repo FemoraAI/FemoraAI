@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {TouchableOpacity, Platform} from 'react-native'
+import {TouchableOpacity, Platform, Text} from 'react-native'
 import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -216,35 +216,18 @@ const TabNavigator = () => {
 
 // Auth Navigator Component
 const AuthNavigator = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const { userData, login } = useUser();
+  const { userData, isLoading } = useUser();
   const { isLoggedIn, isDoctor, needsOnboarding } = userData;
 
-  useEffect(() => {
-    const auth = getAuth();
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        // Call the login function from our unified context
-        await login();
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error in auth state change:', error);
-        setIsLoading(false);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [login]);
-
   if (isLoading) {
-    return <LoadingScreen />;
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#E91E63" />
+        <Text style={styles.loadingText}>Loading your profile...</Text>
+      </View>
+    );
   }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {!isLoggedIn ? (
@@ -329,6 +312,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 50,
     paddingBottom: Platform.OS === 'ios' ? 15 : 10,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF5F8',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#E91E63',
+    fontWeight: '500',
   },
 });
 export default App;

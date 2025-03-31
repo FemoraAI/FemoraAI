@@ -1,5 +1,5 @@
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -10,7 +10,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  ActivityIndicator
 } from 'react-native';
 
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
@@ -24,13 +25,21 @@ import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 const LoginScreen = () => {
   const navigation = useNavigation();
   const recaptchaVerifier = React.useRef(null);
-  const { updateUserData } = useUser(); 
+  const { login, isLoading, error: userError } = useUser();
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [verificationId, setVerificationId] = useState('');
+  const [isLoadingOTP, setIsLoadingOTP] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    if (userError) {
+      setError(userError);
+    }
+  }, [userError]);
 
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
     const doctorsRef = collection(db, 'doctors');
@@ -54,14 +63,17 @@ const LoginScreen = () => {
     }
 
     try {
+      setIsLoadingOTP(true);
+      setError('');
       const formattedPhone = `+1${phoneNumber}`;
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
-      setError('');
     } catch (error) {
-      setError('Failed to send OTP. Please try again.');
       console.error('Send OTP error:', error);
+      setError(error.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsLoadingOTP(false);
     }
   };
 
@@ -72,31 +84,23 @@ const LoginScreen = () => {
     }
   
     try {
+      setIsVerifying(true);
+      setError('');
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       const userCredential = await signInWithCredential(auth, credential);
-      const formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
-      
-      // Check doctor status
-      const isDoctor = await checkDoctorStatus(formattedPhone);
-      console.log('Doctor status:', isDoctor);
-      
-      // Check if user exists in database
-      const userExists = await checkUserExists(userCredential.user.uid);
-      
-      // Update global user context
-      await updateUserData({
-        uid: userCredential.user.uid,
-        phone: formattedPhone,
-        isLoggedIn: true,
-        isDoctor: isDoctor,
-        needsOnboarding: !isDoctor && !userExists
-      });
-
-      setError('');
+      await login(userCredential);
     } catch (error) {
-      setError('Invalid OTP. Please try again.');
       console.error('Verification error:', error);
+      setError(error.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setIsVerifying(false);
     }
+  };
+
+  const handleResendOTP = () => {
+    setOtpSent(false);
+    setOtp('');
+    setError('');
   };
 
   return (
@@ -113,6 +117,8 @@ const LoginScreen = () => {
           style={styles.keyboardContainer}
         >
           <View style={styles.header}>
+            <Text style={styles.headerTitle}>Welcome Back</Text>
+            <Text style={styles.headerSubtitle}>Sign in to continue</Text>
           </View>
 
           <View style={styles.content}>
@@ -134,15 +140,23 @@ const LoginScreen = () => {
                     onChangeText={setPhoneNumber}
                     maxLength={10}
                     style={styles.input}
+                    editable={!isLoadingOTP}
                   />
                 </View>
 
                 <TouchableOpacity 
-                  style={styles.primaryButton} 
+                  style={[styles.primaryButton, isLoadingOTP && styles.disabledButton]} 
                   onPress={handleSendOTP}
+                  disabled={isLoadingOTP}
                 >
-                  <Text style={styles.buttonText}>Send OTP</Text>
-                  <ArrowRight color="#FFFFFF" size={20} />
+                  {isLoadingOTP ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={styles.buttonText}>Send OTP</Text>
+                      <ArrowRight color="#FFFFFF" size={20} />
+                    </>
+                  )}
                 </TouchableOpacity>
               </View>
             ) : (
@@ -157,20 +171,28 @@ const LoginScreen = () => {
                     onChangeText={setOtp}
                     maxLength={6}
                     style={styles.input}
+                    editable={!isVerifying}
                   />
                 </View>
 
                 <TouchableOpacity 
-                  style={styles.primaryButton}
+                  style={[styles.primaryButton, isVerifying && styles.disabledButton]}
                   onPress={handleVerifyOTP}
+                  disabled={isVerifying}
                 >
-                  <Text style={styles.buttonText}>Verify OTP</Text>
-                  <ArrowRight color="#FFFFFF" size={20} />
+                  {isVerifying ? (
+                    <ActivityIndicator color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Text style={styles.buttonText}>Verify OTP</Text>
+                      <ArrowRight color="#FFFFFF" size={20} />
+                    </>
+                  )}
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                   style={styles.secondaryButton}
-                  onPress={() => setOtpSent(false)}
+                  onPress={handleResendOTP}
                 >
                   <Text style={styles.secondaryButtonText}>Change Phone Number</Text>
                 </TouchableOpacity>
@@ -206,9 +228,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#FFF5F8',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '700',
     color: '#2D2D3A',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#8F90A6',
   },
   content: {
     flex: 1,
@@ -285,6 +312,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     fontSize: 14,
+  },
+  disabledButton: {
+    opacity: 0.7,
   },
 });
 
