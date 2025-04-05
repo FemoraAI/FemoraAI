@@ -43,11 +43,9 @@ const DoctorHomeScreen = ({ navigation }) => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-
-      navigation.navigate('Login');
-      console.log("navigating");// Sign out from Firebase Auth
       logout(); // Call the logout function from context
-       // Navigate back to the login screen
+      console.log("User logged out successfully");
+      // No need to navigate - the RootNavigator will handle this based on auth state
     } catch (error) {
       console.error('Logout error:', error);
       setError('Failed to logout. Please try again.');

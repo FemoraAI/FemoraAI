@@ -88,7 +88,35 @@ const LoginScreen = () => {
       setError('');
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       const userCredential = await signInWithCredential(auth, credential);
-      await login(userCredential);
+      const formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
+      
+      // Check doctor status
+      const isDoctor = await checkDoctorStatus(formattedPhone);
+      console.log('Doctor status:', isDoctor);
+      
+      // Check if user exists in database
+      const userExists = await checkUserExists(userCredential.user.uid);
+      
+      // Update global user context with minimal data
+      // The login function in UserContext will handle the rest
+      const userData = {
+        phone: formattedPhone,
+      };
+      
+      if (isDoctor) {
+        userData.isDoctor = true;
+      }
+      
+      // Only update basic info - let the UserContext.login() handle the rest
+      await updateUserData(userData);
+      setError('');
+      
+      // Call login to properly set user state including onboarding status
+      await login();
+      
+      console.log('Authentication successful');
+      
+      // We don't need to manually navigate as the root navigator will handle this based on user context
     } catch (error) {
       console.error('Verification error:', error);
       setError(error.message || 'Invalid OTP. Please try again.');
