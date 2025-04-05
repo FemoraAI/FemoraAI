@@ -83,16 +83,26 @@ const LoginScreen = () => {
       // Check if user exists in database
       const userExists = await checkUserExists(userCredential.user.uid);
       
-      // Update global user context
-      await updateUserData({
-        uid: userCredential.user.uid,
+      // Update global user context with minimal data
+      // The login function in UserContext will handle the rest
+      const userData = {
         phone: formattedPhone,
-        isLoggedIn: true,
-        isDoctor: isDoctor,
-        needsOnboarding: !isDoctor && !userExists
-      });
-
+      };
+      
+      if (isDoctor) {
+        userData.isDoctor = true;
+      }
+      
+      // Only update basic info - let the UserContext.login() handle the rest
+      await updateUserData(userData);
       setError('');
+      
+      // Call login to properly set user state including onboarding status
+      await login();
+      
+      console.log('Authentication successful');
+      
+      // We don't need to manually navigate as the root navigator will handle this based on user context
     } catch (error) {
       setError('Invalid OTP. Please try again.');
       console.error('Verification error:', error);

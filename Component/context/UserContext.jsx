@@ -4,7 +4,8 @@ import { createContext, useState, useContext, useCallback } from "react"
 import moment from "moment"
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
-import { db } from '../../firebase.config'
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import { db, auth } from '../../firebase.config'
 
 const UserContext = createContext()
 
@@ -50,22 +51,53 @@ export const UserProvider = ({ children }) => {
         const isDoctor = await checkDoctorStatus(formattedPhone)
 
         if (userDoc.exists()) {
+          // For existing users, check if they've completed onboarding
+          const userData = userDoc.data()
+          const onboardingCompleted = userData.onboardingCompleted || false
+          
           setUserData((prev) => ({
             ...prev,
-            ...userDoc.data(),
+            ...userData,
             isLoggedIn: true,
             isDoctor,
-            needsOnboarding: false,
+            // Only set needsOnboarding to false if onboarding is actually completed
+            needsOnboarding: !onboardingCompleted && !isDoctor,
           }))
+          
+          // console.log("User login - Existing user:", { 
+          //   isDoctor, 
+          //   needsOnboarding: !onboardingCompleted && !isDoctor,
+          //   onboardingCompleted
+          // })
         } else {
+          // For new users, always set needsOnboarding to true unless they're a doctor
           setUserData((prev) => ({
             ...prev,
             uid: currentUser.uid,
             phone: formattedPhone,
             isLoggedIn: true,
             isDoctor,
-            needsOnboarding: true,
+            needsOnboarding: !isDoctor, // Doctors don't need onboarding
+            onboardingCompleted: false,
           }))
+          
+          // console.log("User login - New user:", { 
+          //   isDoctor, 
+          //   needsOnboarding: !isDoctor 
+          // })
+          
+          // For new users, create a basic document in Firestore
+          if (!isDoctor) {
+            const timestamp = new Date().toISOString()
+            const userRef = doc(db, "users", currentUser.uid)
+            await setDoc(userRef, {
+              uid: currentUser.uid,
+              phone: formattedPhone,
+              createdAt: timestamp,
+              lastUpdated: timestamp,
+              onboardingCompleted: false,
+            }, { merge: true })
+          }
         }
       } catch (error) {
         console.error("Error in login:", error)
@@ -73,14 +105,38 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-  const logout = () => {
-    setUserData((prev) => ({
-      ...prev,
-      isLoggedIn: false,
-      isDoctor: false,
-      uid: null,
-      needsOnboarding: true,
-    }))
+  const logout = async () => {
+    try {
+      // Clear AsyncStorage to prevent data persistence between users
+      await AsyncStorage.clear()
+      
+      // Reset user state
+      setUserData((prev) => ({
+        ...prev,
+        isLoggedIn: false,
+        isDoctor: false,
+        uid: null,
+        needsOnboarding: true,
+        name: "",
+        email: "",
+        phone: "",
+        address: "",
+        profileImage: null,
+        lastPeriodStart: null,
+        periodDays: null,
+        cycleDays: null,
+        createdAt: null,
+        lastUpdated: null,
+        onboardingCompleted: false,
+        expectedPeriodDate: null,
+        periodGaps: [],
+        lastPeriodChecked: null,
+        isLatePeriod: false,
+        daysLate: 0
+      }))
+    } catch (error) {
+      console.error("Error during logout:", error)
+    }
   }
 
   const updateUserData = async (newData) => {
@@ -118,12 +174,22 @@ export const UserProvider = ({ children }) => {
 
       await setDoc(userRef, firestoreData, { merge: true })
 
+      // Only update needsOnboarding if onboardingCompleted is explicitly set
+      const needsOnboardingUpdate = newData.onboardingCompleted !== undefined
+        ? !newData.onboardingCompleted && !userData.isDoctor
+        : userData.needsOnboarding
+
       setUserData((prev) => ({
         ...prev,
         ...firestoreData,
         isLoggedIn: true,
-        needsOnboarding: false,
+        needsOnboarding: needsOnboardingUpdate,
       }))
+      
+      console.log("User data updated:", { 
+        needsOnboarding: needsOnboardingUpdate,
+        onboardingCompleted: newData.onboardingCompleted || userData.onboardingCompleted
+      })
     } catch (error) {
       console.error("Error updating user data:", error)
       throw error

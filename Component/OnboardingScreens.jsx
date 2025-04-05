@@ -137,33 +137,18 @@ const OnboardingScreen = () => {
         await updateUserData(completeUserData);
         
         // Update local user context to reflect completion of onboarding
-        const updatedUserData = {
-          ...completeUserData,
-          isLoggedIn: true,
-          needsOnboarding: false
-        };
+        // No need to create a separate updatedUserData object since updateUserData already did this
         
         // Trigger a login refresh to update the user context
+        // This will ensure all user data is properly loaded and navigation is handled correctly
         await login();
         
-        // Navigate to the main screen
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [
-              {
-                name: 'Main',
-                state: {
-                  routes: [
-                    {
-                      name: 'TabNavigator' // or 'Onboarding'
-                    }
-                  ]
-                }
-              }
-            ]
-          })
-        );
+        console.log('Onboarding completed, user data updated with onboardingCompleted=true');
+        
+        // No need to manually navigate - the RootNavigator in App.jsx will detect
+        // that onboarding is complete and automatically navigate to the main app
+        console.log('Onboarding completed successfully');
+
         
       } catch (error) {
         console.error('Error in handleNext:', error);
