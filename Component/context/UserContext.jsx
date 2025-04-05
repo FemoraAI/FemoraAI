@@ -6,9 +6,6 @@ import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase
 import { getAuth } from "firebase/auth"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { db, auth } from '../../firebase.config'
-import { getAuth } from "firebase/auth"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { db, auth } from '../../firebase.config'
 
 const UserContext = createContext()
 
@@ -122,68 +119,6 @@ export const UserProvider = ({ children }) => {
       } catch (error) {
         console.error("Error in login:", error)
       }
-  const login = async () => {
-    const auth = getAuth()
-    const currentUser = auth.currentUser
-
-    if (currentUser) {
-      try {
-        const userDoc = await getDoc(doc(db, "users", currentUser.uid))
-        const formattedPhone = currentUser.phoneNumber
-        const isDoctor = await checkDoctorStatus(formattedPhone)
-
-        if (userDoc.exists()) {
-          // For existing users, check if they've completed onboarding
-          const userData = userDoc.data()
-          const onboardingCompleted = userData.onboardingCompleted || false
-          
-          setUserData((prev) => ({
-            ...prev,
-            ...userData,
-            isLoggedIn: true,
-            isDoctor,
-            // Only set needsOnboarding to false if onboarding is actually completed
-            needsOnboarding: !onboardingCompleted && !isDoctor,
-          }))
-          
-          // console.log("User login - Existing user:", { 
-          //   isDoctor, 
-          //   needsOnboarding: !onboardingCompleted && !isDoctor,
-          //   onboardingCompleted
-          // })
-        } else {
-          // For new users, always set needsOnboarding to true unless they're a doctor
-          setUserData((prev) => ({
-            ...prev,
-            uid: currentUser.uid,
-            phone: formattedPhone,
-            isLoggedIn: true,
-            isDoctor,
-            needsOnboarding: !isDoctor, // Doctors don't need onboarding
-            onboardingCompleted: false,
-          }))
-          
-          // console.log("User login - New user:", { 
-          //   isDoctor, 
-          //   needsOnboarding: !isDoctor 
-          // })
-          
-          // For new users, create a basic document in Firestore
-          if (!isDoctor) {
-            const timestamp = new Date().toISOString()
-            const userRef = doc(db, "users", currentUser.uid)
-            await setDoc(userRef, {
-              uid: currentUser.uid,
-              phone: formattedPhone,
-              createdAt: timestamp,
-              lastUpdated: timestamp,
-              onboardingCompleted: false,
-            }, { merge: true })
-          }
-        }
-      } catch (error) {
-        console.error("Error in login:", error)
-      }
     }
   }
 
@@ -197,20 +132,7 @@ export const UserProvider = ({ children }) => {
         ...prev,
         isLoggedIn: false,
         isDoctor: false,
-  }
-
-  const logout = async () => {
-    try {
-      // Clear AsyncStorage to prevent data persistence between users
-      await AsyncStorage.clear()
-      
-      // Reset user state
-      setUserData((prev) => ({
-        ...prev,
-        isLoggedIn: false,
-        isDoctor: false,
         uid: null,
-        needsOnboarding: true,
         needsOnboarding: true,
         name: "",
         email: "",
@@ -229,13 +151,9 @@ export const UserProvider = ({ children }) => {
         isLatePeriod: false,
         daysLate: 0
       }))
-        daysLate: 0
-      }))
     } catch (error) {
       console.error("Error during logout:", error)
-      console.error("Error during logout:", error)
     }
-  }
   }
 
   const updateUserData = async (newData) => {
@@ -283,13 +201,7 @@ export const UserProvider = ({ children }) => {
         ...firestoreData,
         isLoggedIn: true,
         needsOnboarding: needsOnboardingUpdate,
-        needsOnboarding: needsOnboardingUpdate,
       }))
-      
-      console.log("User data updated:", { 
-        needsOnboarding: needsOnboardingUpdate,
-        onboardingCompleted: newData.onboardingCompleted || userData.onboardingCompleted
-      })
       
       console.log("User data updated:", { 
         needsOnboarding: needsOnboardingUpdate,
@@ -551,4 +463,3 @@ export const useUser = () => {
 }
 
 export default UserContext
-
