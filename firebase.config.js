@@ -22,10 +22,12 @@ export const app = initializeApp(firebaseConfig);
 // Initialize auth with additional settings for phone auth
 export const auth = initializeAuth(app, {
     persistence: getReactNativePersistence(ReactNativeAsyncStorage),
-    // Add phone auth provider settings
-    providers: [],
-    // Ensure we're not initializing multiple instances
-    popupRedirectResolver: undefined
+    // Configure reCAPTCHA Enterprise settings
+    recaptchaConfig: {
+        siteKey: firebaseConfig.apiKey,
+        enterprise: true,
+        useEnterpriseRecaptcha: true
+    }
 });
 export const functions = getFunctions(app);
 
