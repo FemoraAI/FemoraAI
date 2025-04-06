@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, Platform, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Platform, StyleSheet, View, ActivityIndicator, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -209,39 +209,32 @@ const OnboardingStack = () => (
 
 // Root Navigator that handles authentication state
 const RootNavigator = () => {
-  const [isLoading, setIsLoading] = useState(true);
   const { userData, login } = useUser();
   const { isLoggedIn, isDoctor, needsOnboarding } = userData;
+  const [authInitialized, setAuthInitialized] = useState(false);
 
   useEffect(() => {
     const auth = getAuth();
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        setIsLoading(false);
+        setAuthInitialized(true);
         return;
       }
 
-      try {
-        await login();
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error in auth state change:', error);
-        setIsLoading(false);
+      if (!authInitialized) {
+        try {
+          await login();
+          setAuthInitialized(true);
+        } catch (error) {
+          console.error('Error in auth state change:', error);
+          setAuthInitialized(true);
+        }
       }
     });
 
     return () => unsubscribe();
-  }, [login]);
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
-      </View>
-    );
-  }
+  }, [login, authInitialized]);
 
   // Determine which navigator to render based on auth state
   if (!isLoggedIn) {
@@ -324,19 +317,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 50,
     paddingBottom: Platform.OS === 'ios' ? 15 : 10,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF5F8',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#E91E63',
-    fontWeight: '500',
-  },
+  }
 });
 
 export default App;
