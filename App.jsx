@@ -213,38 +213,48 @@ const RootNavigator = () => {
   const { userData, login } = useUser();
   const { isLoggedIn, isDoctor, needsOnboarding } = userData;
   const [authInitialized, setAuthInitialized] = useState(false);
+  console.log("effect called outside")
 
   useEffect(() => {
-
-    
-    console.log("effect called")
+    console.log("Initializing auth state listener");
     const auth = getAuth();
-    console.log("after auth");
-    setIsLoading(false)
+    let isMounted = true;
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        setIsLoading(false);
-        setAuthInitialized(true);
-        return;
-      }
-
-      if (!authInitialized) {
-        try {
-          console.log("b")
-          await login();
-          console.log("a")
+      try {
+        console.log("Auth state changed, user:", user);
+        
+        if (!user) {
+          console.log("No user detected, setting loading to false");
+          if (isMounted) {
+            setIsLoading(false);
+            setAuthInitialized(true);
+          }
+          return;
+        }
+        
+        console.log("User detected, attempting login");
+        await login();
+        console.log("Login successful");
+        if (isMounted) {
           setAuthInitialized(true);
-        } catch (error) {
-          console.error('Error in auth state change:', error);
-        } finally {
-          console.log("fina")
+        }
+      } catch (error) {
+        console.error('Error in auth state change:', error);
+      } finally {
+        if (isMounted) {
+          console.log("Setting loading to false");
           setIsLoading(false);
         }
       }
     });
 
-    return () => unsubscribe();
-  }, [login, authInitialized]);
+    return () => {
+      console.log("Cleaning up auth listener");
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [login]);
 
   if (isLoading) {
     return (

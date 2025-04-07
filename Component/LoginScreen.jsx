@@ -56,23 +56,32 @@ const LoginScreen = () => {
   }, []);
 
   const handleSendOTP = async () => {
+    console.log('[DEBUG] handleSendOTP triggered');
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
+      console.log('[DEBUG] Invalid phone number format');
       setError('Please enter a valid 10-digit phone number');
       return;
     }
 
     try {
+      console.log('[DEBUG] Starting OTP send process');
       setIsLoadingOTP(true);
       setError('');
       const formattedPhone = `+1${phoneNumber}`;
+      console.log('[DEBUG] Formatted phone:', formattedPhone);
+      
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
+      console.log('[DEBUG] OTP sent successfully, verificationId:', confirmationResult.verificationId);
+      
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
+      console.log('[DEBUG] OTP state updated, otpSent:', true);
     } catch (error) {
-      console.error('Send OTP error:', error);
+      console.error('[DEBUG] Send OTP error:', error);
       setError(error.message || 'Failed to send OTP. Please try again.');
     } finally {
+      console.log('[DEBUG] OTP send process completed');
       setIsLoadingOTP(false);
     }
   };
