@@ -1,11 +1,10 @@
 "use client"
 
-import { createContext, useState, useContext, useCallback, useEffect } from "react"
+import { createContext, useState, useContext, useCallback } from "react"
 import moment from "moment"
 import { doc, setDoc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
 import { getAuth } from "firebase/auth"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import { db, auth } from '../../firebase.config'
+import { db } from '../../firebase.config'
 
 const UserContext = createContext()
 
@@ -30,31 +29,14 @@ export const UserProvider = ({ children }) => {
     periodGaps: [],
     lastPeriodChecked: null,
     isLatePeriod: false,
-    daysLate: 0,
-    loggedPeriods: [],
-    authToken: null,
-    currentPhase: null,
-    phaseInsights: {
-      menstrual: { lastSeen: null },
-      follicular: { lastSeen: null },
-      ovulation: { lastSeen: null },
-      luteal: { lastSeen: null }
-    }
+    daysLate: 0
   })
 
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(null)
-
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
-    try {
-      const doctorsRef = collection(db, "doctors")
-      const doctorQuery = query(doctorsRef, where("phone", "==", formattedPhone))
-      const doctorQuerySnapshot = await getDocs(doctorQuery)
-      return !doctorQuerySnapshot.empty
-    } catch (error) {
-      console.error("Error checking doctor status:", error)
-      return false
-    }
+    const doctorsRef = collection(db, "doctors")
+    const doctorQuery = query(doctorsRef, where("phone", "==", formattedPhone))
+    const doctorQuerySnapshot = await getDocs(doctorQuery)
+    return !doctorQuerySnapshot.empty
   }, [])
 
   const login = async () => {
@@ -68,53 +50,22 @@ export const UserProvider = ({ children }) => {
         const isDoctor = await checkDoctorStatus(formattedPhone)
 
         if (userDoc.exists()) {
-          // For existing users, check if they've completed onboarding
-          const userData = userDoc.data()
-          const onboardingCompleted = userData.onboardingCompleted || false
-          
           setUserData((prev) => ({
             ...prev,
-            ...userData,
+            ...userDoc.data(),
             isLoggedIn: true,
             isDoctor,
-            // Only set needsOnboarding to false if onboarding is actually completed
-            needsOnboarding: !onboardingCompleted && !isDoctor,
+            needsOnboarding: false,
           }))
-          
-          // console.log("User login - Existing user:", { 
-          //   isDoctor, 
-          //   needsOnboarding: !onboardingCompleted && !isDoctor,
-          //   onboardingCompleted
-          // })
         } else {
-          // For new users, always set needsOnboarding to true unless they're a doctor
           setUserData((prev) => ({
             ...prev,
             uid: currentUser.uid,
             phone: formattedPhone,
             isLoggedIn: true,
             isDoctor,
-            needsOnboarding: !isDoctor, // Doctors don't need onboarding
-            onboardingCompleted: false,
+            needsOnboarding: true,
           }))
-          
-          // console.log("User login - New user:", { 
-          //   isDoctor, 
-          //   needsOnboarding: !isDoctor 
-          // })
-          
-          // For new users, create a basic document in Firestore
-          if (!isDoctor) {
-            const timestamp = new Date().toISOString()
-            const userRef = doc(db, "users", currentUser.uid)
-            await setDoc(userRef, {
-              uid: currentUser.uid,
-              phone: formattedPhone,
-              createdAt: timestamp,
-              lastUpdated: timestamp,
-              onboardingCompleted: false,
-            }, { merge: true })
-          }
         }
       } catch (error) {
         console.error("Error in login:", error)
@@ -122,38 +73,14 @@ export const UserProvider = ({ children }) => {
     }
   }
 
-  const logout = async () => {
-    try {
-      // Clear AsyncStorage to prevent data persistence between users
-      await AsyncStorage.clear()
-      
-      // Reset user state
-      setUserData((prev) => ({
-        ...prev,
-        isLoggedIn: false,
-        isDoctor: false,
-        uid: null,
-        needsOnboarding: true,
-        name: "",
-        email: "",
-        phone: "",
-        address: "",
-        profileImage: null,
-        lastPeriodStart: null,
-        periodDays: null,
-        cycleDays: null,
-        createdAt: null,
-        lastUpdated: null,
-        onboardingCompleted: false,
-        expectedPeriodDate: null,
-        periodGaps: [],
-        lastPeriodChecked: null,
-        isLatePeriod: false,
-        daysLate: 0
-      }))
-    } catch (error) {
-      console.error("Error during logout:", error)
-    }
+  const logout = () => {
+    setUserData((prev) => ({
+      ...prev,
+      isLoggedIn: false,
+      isDoctor: false,
+      uid: null,
+      needsOnboarding: true,
+    }))
   }
 
   const updateUserData = async (newData) => {
@@ -191,25 +118,14 @@ export const UserProvider = ({ children }) => {
 
       await setDoc(userRef, firestoreData, { merge: true })
 
-      // Only update needsOnboarding if onboardingCompleted is explicitly set
-      const needsOnboardingUpdate = newData.onboardingCompleted !== undefined
-        ? !newData.onboardingCompleted && !userData.isDoctor
-        : userData.needsOnboarding
-
-      setUserData(prev => ({
+      setUserData((prev) => ({
         ...prev,
         ...firestoreData,
         isLoggedIn: true,
-        needsOnboarding: needsOnboardingUpdate,
+        needsOnboarding: false,
       }))
-      
-      console.log("User data updated:", { 
-        needsOnboarding: needsOnboardingUpdate,
-        onboardingCompleted: newData.onboardingCompleted || userData.onboardingCompleted
-      })
     } catch (error) {
       console.error("Error updating user data:", error)
-      setError(error.message)
       throw error
     }
   }
@@ -308,72 +224,24 @@ export const UserProvider = ({ children }) => {
     return activeDates
   }
 
-  const updatePhaseAndInsights = useCallback(async (phase, hasOpenedInsights = false) => {
-    try {
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
+  const getCurrentPhase = () => {
+    const today = moment()
+    const lastPeriodStart = moment(userData.lastPeriodStart)
+    const cycleLength = Number.parseInt(userData.cycleDays) || 28
+    const periodLength = Number.parseInt(userData.periodDays) || 5
 
-      if (!currentUser) {
-        throw new Error("No authenticated user found");
-      }
-
-      const userRef = doc(db, "users", currentUser.uid);
-      const timestamp = new Date().toISOString();
-
-      const updateData = {
-        currentPhase: phase,
-        phaseInsights: {
-          ...userData.phaseInsights,
-          [phase]: { 
-            lastSeen: hasOpenedInsights ? timestamp : userData.phaseInsights[phase].lastSeen 
-          }
-        },
-        lastUpdated: timestamp
-      };
-
-      await setDoc(userRef, updateData, { merge: true });
-      
-      setUserData(prev => ({
-        ...prev,
-        ...updateData
-      }));
-    } catch (error) {
-      console.error("Error updating phase and insights:", error);
-      setError(error.message);
-      throw error;
-    }
-  }, [userData.phaseInsights]);
-
-  const getCurrentPhase = useCallback(() => {
-    const today = moment();
-    const lastPeriodStart = moment(userData.lastPeriodStart);
-    const cycleLength = Number.parseInt(userData.cycleDays) || 28;
-    const periodLength = Number.parseInt(userData.periodDays) || 5;
-
-    const currentCycleStart = moment(lastPeriodStart);
+    const currentCycleStart = moment(lastPeriodStart)
     while (currentCycleStart.add(cycleLength, "days").isAfter(today)) {
-      currentCycleStart.subtract(cycleLength, "days");
+      currentCycleStart.subtract(cycleLength, "days")
     }
 
-    const dayInCycle = today.diff(currentCycleStart, "days") + 1;
+    const dayInCycle = today.diff(currentCycleStart, "days") + 1
 
-    let phase;
-    if (dayInCycle <= periodLength) {
-      phase = { name: "Menstrual Phase", color: "#FF4D6D" };
-    } else if (dayInCycle < cycleLength * 0.3) {
-      phase = { name: "Follicular Phase", color: "#C77DFF" };
-    } else if (dayInCycle < cycleLength * 0.5) {
-      phase = { name: "Ovulation Phase", color: "#FFD166" };
-    } else {
-      phase = { name: "Luteal Phase", color: "#F8A978" };
-    }
-
-    if (phase.name !== userData.currentPhase) {
-      updatePhaseAndInsights(phase.name.toLowerCase().replace(" phase", ""));
-    }
-
-    return phase;
-  }, [userData.lastPeriodStart, userData.cycleDays, userData.periodDays, userData.currentPhase, updatePhaseAndInsights]);
+    if (dayInCycle <= periodLength) return { name: "Menstrual Phase", color: "#FF4D6D" }
+    if (dayInCycle < cycleLength * 0.3) return { name: "Follicular Phase", color: "#C77DFF" }
+    if (dayInCycle < cycleLength * 0.5) return { name: "Ovulation Phase", color: "#FFD166" }
+    return { name: "Luteal Phase", color: "#F8A978" }
+  }
 
   const shouldShowPeriodCheck = () => {
     if (!userData.expectedPeriodDate) return false
@@ -433,8 +301,6 @@ export const UserProvider = ({ children }) => {
     <UserContext.Provider
       value={{
         userData,
-        isLoading,
-        error,
         updateUserData,
         login,
         logout,
@@ -445,8 +311,7 @@ export const UserProvider = ({ children }) => {
         getActiveDatesForMonth,
         getCurrentPhase,
         shouldShowPeriodCheck,
-        handlePeriodCheck,
-        updatePhaseAndInsights
+        handlePeriodCheck
       }}
     >
       {children}
@@ -463,3 +328,4 @@ export const useUser = () => {
 }
 
 export default UserContext
+

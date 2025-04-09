@@ -1,18 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, Platform, StyleSheet, View, ActivityIndicator,Text } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import {TouchableOpacity, Platform} from 'react-native'
+import { NavigationContainer,useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StyleSheet, View, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 // Screen Imports
-import HomeScreen from './Component/HomeScreen';
+import HeaderScreen from './Component/HomeScreen';
+
 import LoginScreen from './Component/LoginScreen';
 import DoctorsScreen from './Component/DoctorsScreen';
-import CycleInsights from './Component/CycleInsights';
+import CycleInsights from  './Component/CycleInsights';
 import CartScreen from './Component/CartScreen';
 import ProfileManagementScreen from './Component/ProfileManagementScreen';
 import AppointmentSchedulePage from './Component/AppointmentSchedulePage';
@@ -24,24 +26,17 @@ import DoctorHomeScreen from './Component/DoctorHomepage';
 import AddPrescriptionPage from './Component/AddPrescriptionPage';
 import EducationalContent from './Component/EducationalContent';
 import Community from './Component/community';
-
 // Context Providers
 import { UserProvider, useUser } from './Component/context/UserContext';
 import { CartProvider } from './Component/context/CartContext';
 
-// Create navigators
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
+const RootStack = createStackNavigator();
 
 // Loading Screen Component
-const LoadingScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" color="#E91E63" />
-  </View>
-);
-
-// Custom Tab Bar Component
-const CustomTabBar = ({ state, descriptors, navigation }) => {
+const CustomTabBar = ({ state, descriptors, navigation }) => { // Add navigation prop here
+  // Remove useNavigation hook since we get navigation from props
   return (
     <View style={styles.tabBarContainer}>
       {state.routes.map((route, index) => {
@@ -53,7 +48,7 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
         });
 
         const onPress = () => {
-          const event = navigation.emit({
+          const event = navigation.emit({ // Now using prop navigation
             type: 'tabPress',
             target: route.key,
             canPreventDefault: true,
@@ -91,78 +86,98 @@ const CustomTabBar = ({ state, descriptors, navigation }) => {
     </View>
   );
 };
+const LoadingScreen = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color="#E91E63" />
+  </View>
+);
 
 // Home Stack Navigator
-const HomeStack = () => (
-  <Stack.Navigator 
-    initialRouteName="HomeScreen"
-    screenOptions={{ headerShown: false }}
-  >
-    <Stack.Screen name="HomeScreen" component={HomeScreen} />
-    <Stack.Screen name="PeriodTracker" component={PeriodTrackerPage} />
-    <Stack.Screen name="ProfileManagement" component={ProfileManagementScreen} />
-  </Stack.Navigator>
-);
+const HomeStack = () => {
+  const { userData } = useUser();
+  
+  return (
+    <Stack.Navigator 
+      initialRouteName="HomeScreen"
+      screenOptions={{ headerShown: false }}
+    >
+      <Stack.Screen name="HomeScreen" component={HeaderScreen} />
+      {!userData.isDoctor && (
+        <Stack.Screen name="PeriodTracker" component={PeriodTrackerPage} />
+      )}
+      <Stack.Screen name="ProfileManagement" component={ProfileManagementScreen} />
+    </Stack.Navigator>
+  );
+};
 
 // Doctors Stack Navigator
-const DoctorsStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="DoctorsList" component={DoctorsScreen} />
-    <Stack.Screen name="AppointmentSchedule" component={AppointmentSchedulePage} />
-    <Stack.Screen name="pres" component={PrescriptionPage} />
-    <Stack.Screen name="list" component={DoctorPage} />
-  </Stack.Navigator>
-);
+const DoctorsStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DoctorsList" component={DoctorsScreen} />
+      <Stack.Screen name="AppointmentSchedule" component={AppointmentSchedulePage} />
+      <Stack.Screen name="pres" component={PrescriptionPage} />
+      <Stack.Screen name="list" component={DoctorPage} />
+    </Stack.Navigator>
+  );
+};
 
-// Doctor Stack Navigator (for doctor users)
-const DoctorStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="DoctorHome" component={DoctorHomeScreen} />
-    <Stack.Screen name="AddPrescription" component={AddPrescriptionPage} />
-  </Stack.Navigator>
-);
-
-// Education Stack Navigator
-const EducationStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Eduscreen" component={EducationalContent} />
-  </Stack.Navigator>
-);
-
-// Community Stack Navigator
-const CommunityStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="comscreen" component={Community} />
-  </Stack.Navigator>
-);
-
-// Main Tab Navigator for regular users
-const MainTabNavigator = () => {
+// Doctor Stack Navigator
+const DoctorStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DoctorHome" component={DoctorHomeScreen} />
+      <Stack.Screen name="AddPrescription" component={AddPrescriptionPage} />
+    </Stack.Navigator>
+  );
+};
+const Edu = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Eduscreen" component={EducationalContent} />
+    </Stack.Navigator>
+  );
+};
+const CommunityStack = () => {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="comscreen" component={Community} />
+    </Stack.Navigator>
+  );
+};
+// Tab Navigator
+const TabNavigator = () => {
+  const { userData } = useUser();
+  
   return (
     <Tab.Navigator
-      initialRouteName="Home"
-      screenOptions={{ headerShown: false }}
-      tabBar={(props) => <CustomTabBar {...props} />}
-    >
-      <Tab.Screen
-        name="Cart"
-        component={CycleInsights}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="calendar-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Doctors"
-        component={DoctorsStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="medkit-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
+    initialRouteName="Home"
+    screenOptions={{ headerShown: false }}
+    tabBar={(props) => <CustomTabBar {...props} />} // Pass all props
+  >
+        {!userData.isDoctor && (
+        <Tab.Screen
+          name="Cart"
+          component={CycleInsights}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="calendar-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+      {!userData.isDoctor && (
+        <Tab.Screen
+          name="Doctors"
+          component={DoctorsStack}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="medkit-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+       <Tab.Screen
         name="Home"
         component={HomeStack}
         options={{
@@ -171,110 +186,78 @@ const MainTabNavigator = () => {
           ),
         }}
       />
-      <Tab.Screen
-        name="Edu"
-        component={EducationStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="meditation" size={size+5} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="communityPage"
-        component={CommunityStack}
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <Icon name="chatbubbles-outline" size={size} color={color} />
-          ),
-        }}
-      />
+      {!userData.isDoctor && (
+        <Tab.Screen
+          name="Edu"
+          component={Edu}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <MaterialCommunityIcons name="meditation" size={size+5} color={color} />
+            ),
+          }}
+        />
+      )}
+      {!userData.isDoctor && (
+        <Tab.Screen
+          name="communityPage"
+          component={CommunityStack}
+          options={{
+            tabBarIcon: ({ color, size }) => (
+              <Icon name="chatbubbles-outline" size={size} color={color} />
+            ),
+          }}
+        />
+      )}
+      
+   
     </Tab.Navigator>
   );
 };
 
-// Auth Stack Navigator
-const AuthStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Login" component={LoginScreen} />
-  </Stack.Navigator>
-);
-
-// Onboarding Stack Navigator
-const OnboardingStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false, gestureEnabled: false }}>
-    <Stack.Screen name="OnboardingScreens" component={OnboardingScreens} />
-  </Stack.Navigator>
-);
-
-// Root Navigator that handles authentication state
-const RootNavigator = () => {
+// Auth Navigator Component
+const AuthNavigator = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { userData, login } = useUser();
   const { isLoggedIn, isDoctor, needsOnboarding } = userData;
-  const [authInitialized, setAuthInitialized] = useState(false);
-  console.log("effect called outside")
 
   useEffect(() => {
-    console.log("Initializing auth state listener");
     const auth = getAuth();
-    let isMounted = true;
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
-        console.log("Auth state changed, user:", user);
-        
-        if (!user) {
-          console.log("No user detected, setting loading to false");
-          if (isMounted) {
-            setIsLoading(false);
-            setAuthInitialized(true);
-          }
-          return;
-        }
-        
-        console.log("User detected, attempting login");
+        // Call the login function from our unified context
         await login();
-        console.log("Login successful");
-        if (isMounted) {
-          setAuthInitialized(true);
-        }
+        setIsLoading(false);
       } catch (error) {
         console.error('Error in auth state change:', error);
-      } finally {
-        if (isMounted) {
-          console.log("Setting loading to false");
-          setIsLoading(false);
-        }
+        setIsLoading(false);
       }
     });
 
-    return () => {
-      console.log("Cleaning up auth listener");
-      isMounted = false;
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, [login]);
 
   if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#E91E63" />
-        <Text style={styles.loadingText}>Loading your profile...</Text>
-      </View>
-    );
+    return <LoadingScreen />;
   }
-
-  // Determine which navigator to render based on auth state
-  if (!isLoggedIn) {
-    return <AuthStack />;
-  } else if (isDoctor) {
-    return <DoctorStack />;
-  } else if (needsOnboarding) {
-    return <OnboardingStack />;
-  } else {
-    return <MainTabNavigator />;
-  }
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!isLoggedIn ? (
+        <Stack.Screen name="Login" component={LoginScreen} />
+      ) : needsOnboarding ? (
+        <Stack.Screen name="Onboarding" component={OnboardingScreens} />
+      ) : isDoctor ? (
+        <Stack.Screen name="DoctorStack" component={DoctorStack} />
+      ) : (
+        <Stack.Screen name="TabNavigator" component={TabNavigator} />
+      )}
+    </Stack.Navigator>
+  );
 };
 
 // Main App Component
@@ -284,7 +267,7 @@ const App = () => {
       <UserProvider>
         <CartProvider>
           <NavigationContainer>
-            <RootNavigator />
+            <AuthNavigator />
           </NavigationContainer>
         </CartProvider>
       </UserProvider>
@@ -347,18 +330,5 @@ const styles = StyleSheet.create({
     height: 50,
     paddingBottom: Platform.OS === 'ios' ? 15 : 10,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFF5F8',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#E91E63',
-    fontWeight: '500',
-  },
 });
-
 export default App;

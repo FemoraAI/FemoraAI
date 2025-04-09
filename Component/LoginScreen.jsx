@@ -1,5 +1,5 @@
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   View, 
   Text, 
@@ -10,8 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Keyboard,
-  TouchableWithoutFeedback,
-  ActivityIndicator
+  TouchableWithoutFeedback
 } from 'react-native';
 
 import { Phone, Package, ArrowRight } from 'lucide-react-native';
@@ -25,21 +24,13 @@ import { FirebaseRecaptchaVerifierModal } from 'expo-firebase-recaptcha';
 const LoginScreen = () => {
   const navigation = useNavigation();
   const recaptchaVerifier = React.useRef(null);
-  const { login, isLoading, error: userError } = useUser();
+  const { updateUserData } = useUser(); 
   
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [verificationId, setVerificationId] = useState('');
-  const [isLoadingOTP, setIsLoadingOTP] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
-
-  useEffect(() => {
-    if (userError) {
-      setError(userError);
-    }
-  }, [userError]);
 
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
     const doctorsRef = collection(db, 'doctors');
@@ -56,33 +47,21 @@ const LoginScreen = () => {
   }, []);
 
   const handleSendOTP = async () => {
-    console.log('[DEBUG] handleSendOTP triggered');
     const phoneRegex = /^[0-9]{10}$/;
     if (!phoneRegex.test(phoneNumber)) {
-      console.log('[DEBUG] Invalid phone number format');
       setError('Please enter a valid 10-digit phone number');
       return;
     }
 
     try {
-      console.log('[DEBUG] Starting OTP send process');
-      setIsLoadingOTP(true);
-      setError('');
       const formattedPhone = `+1${phoneNumber}`;
-      console.log('[DEBUG] Formatted phone:', formattedPhone);
-      
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, recaptchaVerifier.current);
-      console.log('[DEBUG] OTP sent successfully, verificationId:', confirmationResult.verificationId);
-      
       setVerificationId(confirmationResult.verificationId);
       setOtpSent(true);
-      console.log('[DEBUG] OTP state updated, otpSent:', true);
+      setError('');
     } catch (error) {
-      console.error('[DEBUG] Send OTP error:', error);
-      setError(error.message || 'Failed to send OTP. Please try again.');
-    } finally {
-      console.log('[DEBUG] OTP send process completed');
-      setIsLoadingOTP(false);
+      setError('Failed to send OTP. Please try again.');
+      console.error('Send OTP error:', error);
     }
   };
 
@@ -93,8 +72,6 @@ const LoginScreen = () => {
     }
   
     try {
-      setIsVerifying(true);
-      setError('');
       const credential = PhoneAuthProvider.credential(verificationId, otp);
       const userCredential = await signInWithCredential(auth, credential);
       const formattedPhone = `+1${phoneNumber.replace(/\D/g, '')}`;
@@ -106,38 +83,20 @@ const LoginScreen = () => {
       // Check if user exists in database
       const userExists = await checkUserExists(userCredential.user.uid);
       
-      // Update global user context with minimal data
-      // The login function in UserContext will handle the rest
-      const userData = {
+      // Update global user context
+      await updateUserData({
+        uid: userCredential.user.uid,
         phone: formattedPhone,
-      };
-      
-      if (isDoctor) {
-        userData.isDoctor = true;
-      }
-      
-      // Only update basic info - let the UserContext.login() handle the rest
-      await updateUserData(userData);
-      setError('');
-      
-      // Call login to properly set user state including onboarding status
-      await login();
-      
-      console.log('Authentication successful');
-      
-      // We don't need to manually navigate as the root navigator will handle this based on user context
-    } catch (error) {
-      console.error('Verification error:', error);
-      setError(error.message || 'Invalid OTP. Please try again.');
-    } finally {
-      setIsVerifying(false);
-    }
-  };
+        isLoggedIn: true,
+        isDoctor: isDoctor,
+        needsOnboarding: !isDoctor && !userExists
+      });
 
-  const handleResendOTP = () => {
-    setOtpSent(false);
-    setOtp('');
-    setError('');
+      setError('');
+    } catch (error) {
+      setError('Invalid OTP. Please try again.');
+      console.error('Verification error:', error);
+    }
   };
 
   return (
@@ -154,8 +113,6 @@ const LoginScreen = () => {
           style={styles.keyboardContainer}
         >
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Welcome Back</Text>
-            <Text style={styles.headerSubtitle}>Sign in to continue</Text>
           </View>
 
           <View style={styles.content}>
@@ -177,23 +134,15 @@ const LoginScreen = () => {
                     onChangeText={setPhoneNumber}
                     maxLength={10}
                     style={styles.input}
-                    editable={!isLoadingOTP}
                   />
                 </View>
 
                 <TouchableOpacity 
-                  style={[styles.primaryButton, isLoadingOTP && styles.disabledButton]} 
+                  style={styles.primaryButton} 
                   onPress={handleSendOTP}
-                  disabled={isLoadingOTP}
                 >
-                  {isLoadingOTP ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Text style={styles.buttonText}>Send OTP</Text>
-                      <ArrowRight color="#FFFFFF" size={20} />
-                    </>
-                  )}
+                  <Text style={styles.buttonText}>Send OTP</Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
                 </TouchableOpacity>
               </View>
             ) : (
@@ -208,28 +157,20 @@ const LoginScreen = () => {
                     onChangeText={setOtp}
                     maxLength={6}
                     style={styles.input}
-                    editable={!isVerifying}
                   />
                 </View>
 
                 <TouchableOpacity 
-                  style={[styles.primaryButton, isVerifying && styles.disabledButton]}
+                  style={styles.primaryButton}
                   onPress={handleVerifyOTP}
-                  disabled={isVerifying}
                 >
-                  {isVerifying ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Text style={styles.buttonText}>Verify OTP</Text>
-                      <ArrowRight color="#FFFFFF" size={20} />
-                    </>
-                  )}
+                  <Text style={styles.buttonText}>Verify OTP</Text>
+                  <ArrowRight color="#FFFFFF" size={20} />
                 </TouchableOpacity>
 
                 <TouchableOpacity 
                   style={styles.secondaryButton}
-                  onPress={handleResendOTP}
+                  onPress={() => setOtpSent(false)}
                 >
                   <Text style={styles.secondaryButtonText}>Change Phone Number</Text>
                 </TouchableOpacity>
@@ -265,14 +206,9 @@ const styles = StyleSheet.create({
     borderBottomColor: '#FFF5F8',
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: '700',
     color: '#2D2D3A',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 16,
-    color: '#8F90A6',
   },
   content: {
     flex: 1,
@@ -349,9 +285,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 16,
     fontSize: 14,
-  },
-  disabledButton: {
-    opacity: 0.7,
   },
 });
 
