@@ -1667,7 +1667,7 @@ const Community = () => {
         onDisable={handleDisableNotifications}
       />
     </SafeAreaView>
-  );
+    );
 };
 
 const styles = StyleSheet.create({
@@ -1738,7 +1738,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-    justifyContent: 'center',
+        justifyContent: 'center',
   },
   communityButtonActive: {
     backgroundColor: '#FFE4EC',
@@ -1747,7 +1747,7 @@ const styles = StyleSheet.create({
   },
   communityIconContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+        alignItems: 'center',
     marginBottom: 4,
   },
   communityName: {
@@ -2542,7 +2542,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     paddingHorizontal: 10,
     fontWeight: '600',
-  },
+    },
 });
 
 export default Community;

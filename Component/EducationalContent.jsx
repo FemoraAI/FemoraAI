@@ -13,12 +13,15 @@ import {
   Modal,
   Animated,
   Alert,
+  Dimensions,
 } from "react-native";
 import { MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import ArticleModal from "./modal/Articlemodal";
 import LottieView from "lottie-react-native";
 import sunAnimation from '../assets/animations/sun.json';
+import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Soft, modern color palette
 const COLORS = {
@@ -43,6 +46,53 @@ const COLORS = {
   gradient2: "#FF69B4",
   buttonText: "#FFFFFF",
   candyShadow: "#FF1493",
+  meditationCardBg1: '#FFE0E6',
+  meditationCardBg2: '#FFD1DC',
+  meditationAction: '#8E97FD',
+  meditationActionBg: 'rgba(142, 151, 253, 0.1)',
+  meditationTagText: '#8E97FD',
+  meditationTagBg: 'rgba(142, 151, 253, 0.1)',
+  personalizedHeaderBg: 'rgba(142, 151, 253, 0.05)',
+  personalizedTagBg: 'rgba(142, 151, 253, 0.1)',
+};
+
+const { width } = Dimensions.get('window');
+
+const mockUserData = {
+  cyclePhase: 'follicular',
+  symptoms: ['headache', 'fatigue', 'mood swings', 'cramps'],
+  mood: 'anxious',
+  flow: 'medium',
+  stressLevel: 7,
+  sleepQuality: 6,
+  energyLevel: 5,
+  healthConditions: ['PCOS'],
+  inProgressMeditations: [
+    {
+      id: 101,
+      title: 'Stress Relief',
+      description: 'Calm your mind and reduce anxiety',
+      duration: '15 Minutes',
+      progress: 0.3,
+      image: require('../assets/meditate1.jpg'),
+      audioUrl: 'https://example.com/stress-relief.mp3',
+      tags: ['stress', 'anxiety'],
+      lastAccessed: '2024-03-15T10:30:00',
+    }
+  ],
+  previousMeditations: [
+    {
+      id: 201,
+      title: 'Sleep Better',
+      description: 'Improve your sleep quality',
+      duration: '20 Minutes',
+      progress: 0.7,
+      image: require('../assets/meditate2.jpg'),
+      audioUrl: 'https://example.com/sleep-better.mp3',
+      tags: ['sleep', 'relaxation'],
+      lastAccessed: '2024-03-10T22:00:00',
+    }
+  ]
 };
 
 const activityColors = [
@@ -57,25 +107,6 @@ const activityColors = [
 const getRandomColor = () => {
   return activityColors[Math.floor(Math.random() * activityColors.length)];
 };
-
-const quickContentData = [
-  {
-    id: 1,
-    title: "Coping with Stress",
-    backgroundColor: COLORS.secondary,
-    duration: "12:00 min",
-    icon: "play-circle-outline",
-    image: "https://images.pexels.com/photos/3758104/pexels-photo-3758104.jpeg?auto=compress&cs=tinysrgb&w=600",
-  },
-  {
-    id: 2,
-    title: "Balance Within",
-    backgroundColor: COLORS.primary,
-    duration: "7:00 min",
-    icon: "play-circle-outline",
-    image: "https://images.pexels.com/photos/3759657/pexels-photo-3759657.jpeg?auto=compress&cs=tinysrgb&w=600",
-  },
-];
 
 const mindQuizData = [
   {
@@ -99,34 +130,92 @@ const mindQuizData = [
 const recommendedArticles = [
   {
     id: 1,
-    title: "Understanding Mental Wellness",
-    subtitle: "A Guide to Better Mental Health",
+    title: "Managing Anxiety During Your Day",
+    subtitle: "Calming Techniques for Anxious Moments",
     recommendedBy: "Dr. Sarah Wilson",
-    content: "Mental wellness is a crucial part of our overall health. This comprehensive guide explores various aspects of mental health and provides practical tips for maintaining a healthy mind.",
+    content: "Feeling anxious? Explore practical tips and mindfulness techniques to find calm and manage anxiety symptoms effectively.",
     readTime: "5 min read",
     type: "Mental Health",
-    image: "https://images.pexels.com/photos/3759658/pexels-photo-3759658.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://images.pexels.com/photos/3771836/pexels-photo-3771836.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['anxiety', 'mood', 'stress'],
   },
   {
     id: 2,
-    title: "Mindful Living",
+    title: "Mindful Living for Stress",
     subtitle: "Daily Practices for Peace",
     recommendedBy: "Dr. Michael Chang",
-    content: "Mindfulness is more than just meditation. Learn how to incorporate mindful practices into your daily routine for a more balanced and peaceful life.",
+    content: "Learn how to incorporate mindful practices into your daily routine for a more balanced and peaceful life, reducing stress.",
     readTime: "7 min read",
     type: "Mindfulness",
-    image: "https://images.pexels.com/photos/924824/pexels-photo-924824.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://images.pexels.com/photos/7176027/pexels-photo-7176027.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['stress', 'anxiety', 'mood swings'],
   },
   {
     id: 3,
-    title: "The Power of Positive Thinking",
-    subtitle: "Reshape Your Mindset",
+    title: "Fighting Fatigue & Boosting Low Energy",
+    subtitle: "Lifestyle Strategies for Feeling More Vibrant",
     recommendedBy: "Dr. Emily Brooks",
-    content: "Discover how positive thinking can transform your life. This article explores the science behind positive psychology and provides practical exercises.",
+    content: "Struggling with fatigue and low energy? Discover simple diet, exercise, and sleep habits to naturally increase your vitality.",
     readTime: "6 min read",
-    type: "Psychology",
-    image: "https://images.pexels.com/photos/6953870/pexels-photo-6953870.jpeg?auto=compress&cs=tinysrgb&w=600",
+    type: "Lifestyle",
+    image: "https://cdn.pixabay.com/photo/2022/11/08/09/31/background-7578102_1280.jpg",
+    tags: ['fatigue', 'energyLevel', 'sleepQuality'],
   },
+  {
+    id: 4,
+    title: "Easing Menstrual Cramps",
+    subtitle: "Natural Remedies for Period Pain",
+    recommendedBy: "Dr. Jessica Chen",
+    content: "Find effective, natural ways to manage menstrual cramps and discomfort during your cycle.",
+    readTime: "4 min read",
+    type: "Women's Health",
+    image: "https://media.istockphoto.com/id/961365406/photo/woman-with-hot-water-bottle-healing-stomach-pain.jpg?s=612x612&w=0&k=20&c=JMAIGd7A2bmPngrOopJgpwtsMeaJ7bdZQqkvUYbAxIM=",
+    tags: ['cramps', 'cyclePhase', 'symptoms'],
+  },
+  {
+    id: 5,
+    title: "Living Well with PCOS",
+    subtitle: "Understanding and Managing Symptoms",
+    recommendedBy: "Dr. Olivia Green",
+    content: "A comprehensive guide to understanding PCOS, managing symptoms like fatigue and mood swings, and improving overall well-being.",
+    readTime: "8 min read",
+    type: "Health Condition",
+    image: "https://images.pexels.com/photos/40568/medical-appointment-doctor-healthcare-40568.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['PCOS', 'healthConditions', 'fatigue', 'mood swings'],
+  },
+  {
+    id: 6,
+    title: "Strategies for Better Sleep",
+    subtitle: "Improve Your Sleep Quality Tonight",
+    recommendedBy: "Dr. Ben Carter",
+    content: "Learn practical techniques and lifestyle adjustments to help you fall asleep faster and enjoy more restorative sleep.",
+    readTime: "7 min read",
+    type: "Sleep",
+    image: "https://images.pexels.com/photos/3771069/pexels-photo-3771069.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['sleepQuality', 'fatigue', 'stress'],
+  },
+  {
+    id: 7,
+    title: "Nutrition for Your Cycle: Follicular Phase",
+    subtitle: "Foods to Support Energy and Mood",
+    recommendedBy: "Nutritionist Laura Miles",
+    content: "Discover the best foods to eat during your follicular phase to boost energy, stabilize mood, and support hormonal balance.",
+    readTime: "5 min read",
+    type: "Nutrition",
+    image: "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['cyclePhase', 'follicular', 'nutrition', 'energyLevel'],
+  },
+  {
+    id: 8,
+    title: "Coping with Headaches",
+    subtitle: "Tips for Managing Headache Pain",
+    recommendedBy: "Dr. Ken Adams",
+    content: "Explore various strategies, from relaxation techniques to identifying triggers, to help manage and reduce headache frequency.",
+    readTime: "6 min read",
+    type: "Symptom Management",
+    image: "https://images.pexels.com/photos/3807767/pexels-photo-3807767.jpeg?auto=compress&cs=tinysrgb&w=600",
+    tags: ['headache', 'symptoms', 'stress'],
+  }
 ];
 
 const MainContent = () => {
@@ -140,6 +229,133 @@ const MainContent = () => {
   const modalAnimation = useRef(new Animated.Value(0)).current;
   const [drawerVisible, setDrawerVisible] = useState(false);
   const drawerAnimation = useRef(new Animated.Value(0)).current;
+  const navigation = useNavigation();
+
+  const [userData, setUserData] = useState(mockUserData);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [scrollX] = useState(new Animated.Value(0));
+  const [cardScale] = useState(new Animated.Value(1));
+  const [cardOpacity] = useState(new Animated.Value(1));
+  const [showAllArticles, setShowAllArticles] = useState(false);
+  const [filteredArticles, setFilteredArticles] = useState([]);
+
+  const fetchUserData = async () => {
+    setUserData(mockUserData);
+    checkPreferences();
+  };
+
+  useEffect(() => {
+    fetchUserData();
+    const checkPreferences = async () => {
+      const hasCompleted = await AsyncStorage.getItem("hasCompletedPreferences");
+      if (!hasCompleted) {
+        setUserPreferencesModalVisible(true);
+      }
+    };
+    checkPreferences();
+  }, []);
+
+  useEffect(() => {
+    if (userData) {
+      const userTags = [
+        userData.cyclePhase,
+        userData.mood,
+        ...(userData.symptoms || []),
+        ...(userData.healthConditions || []),
+        userData.stressLevel > 6 ? 'stress' : null,
+        userData.sleepQuality < 7 ? 'sleepQuality' : null,
+        userData.energyLevel < 6 ? 'energyLevel' : null,
+      ].filter(tag => tag !== null).map(tag => String(tag).toLowerCase());
+
+      const relevantArticles = recommendedArticles.filter(article => {
+        const articleTagsLower = article.tags.map(tag => String(tag).toLowerCase());
+        return articleTagsLower.some(articleTag => userTags.includes(articleTag));
+      });
+      setFilteredArticles(relevantArticles);
+    } else {
+      setFilteredArticles(recommendedArticles);
+    }
+  }, [userData]);
+
+  const getPersonalizedMeditations = () => {
+    const { cyclePhase, symptoms, mood, stressLevel, healthConditions } = userData;
+    let meditations = [];
+    if (mood === 'anxious') {
+      meditations.push({
+        id: 1, title: 'Anxiety Relief', description: 'Find peace in moments of anxiety', duration: '10 Min', image: require('../assets/meditate4.jpg'), audioUrl: '', tags: ['anxiety', 'calm'], type: 'mood',
+      });
+    }
+    if (userData.sleepQuality < 7) {
+      meditations.push({
+        id: 2, title: 'Deep Sleep', description: 'Improve your sleep quality', duration: '20 Min', image: require('../assets/meditate2.jpg'), audioUrl: '', tags: ['sleep', 'relaxation'], type: 'sleep',
+      });
+    }
+    if (cyclePhase === 'menstrual') {
+      meditations.push({
+        id: 3, title: 'Period Comfort', description: 'Ease menstrual discomfort', duration: '15 Min', image: require('../assets/meditate3.jpg'), audioUrl: '', tags: ['menstrual', 'comfort'], type: 'cycle',
+      });
+    }
+    if (symptoms.includes('cramps')) {
+      meditations.push({
+        id: 4, title: 'Cramp Relief', description: 'Gentle meditation for cramps', duration: '12 Min', image: require('../assets/meditate1.jpg'), audioUrl: '', tags: ['cramps', 'comfort'], type: 'symptoms',
+      });
+    }
+    if (healthConditions.includes('PCOS')) {
+      meditations.push({
+        id: 5, title: 'PCOS Support', description: 'Meditation for hormonal balance', duration: '15 Min', image: require('../assets/meditate2.jpg'), audioUrl: '', tags: ['PCOS', 'hormonal'], type: 'health',
+      });
+    }
+    return meditations;
+  };
+
+  const animateCardPress = (scale) => {
+    Animated.parallel([
+      Animated.spring(cardScale, { toValue: scale, useNativeDriver: true, tension: 50, friction: 7 }),
+      Animated.timing(cardOpacity, { toValue: scale === 0.95 ? 0.8 : 1, duration: 200, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const handleMeditationSelect = (meditation) => {
+    animateCardPress(0.95);
+    setTimeout(() => {
+      animateCardPress(1);
+      console.log("Selected meditation:", meditation.title);
+      Alert.alert("Navigate", `Would navigate to ${meditation.title}`);
+    }, 200);
+  };
+
+  const renderMeditationCard = (meditation, index) => (
+    <Animated.View
+      key={meditation.id}
+      style={[ styles.meditationCard, { transform: [{ scale: cardScale }], opacity: cardOpacity } ]}
+    >
+      <TouchableOpacity
+        onPress={() => handleMeditationSelect(meditation)}
+        activeOpacity={0.9}
+      >
+        <LinearGradient
+          colors={[COLORS.meditationCardBg1, COLORS.meditationCardBg2]}
+          style={styles.meditationGradient}
+        >
+          <Image source={meditation.image} style={styles.meditationImage} />
+          <View style={styles.meditationInfo}>
+            <Text style={styles.meditationTitle}>{meditation.title}</Text>
+            <Text style={styles.meditationDescription}>{meditation.description}</Text>
+            <View style={styles.meditationMeta}>
+              <Text style={styles.meditationDuration}>{meditation.duration}</Text>
+              <View style={styles.meditationTags}>
+                {meditation.tags.map((tag, tagIndex) => (
+                  <View key={tagIndex} style={styles.tag}>
+                    <Text style={styles.tagText}>{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animated.View>
+  );
 
   const closeModal = () => {
     setModalVisible(false);
@@ -152,26 +368,20 @@ const MainContent = () => {
   };
 
   const optionDescriptions = {
-    // Dietary preferences
     "Vegetarian 🥗": "Leaf-ing the meat behind! Your superpower is turning plants into pure deliciousness.",
     "Non-Vegetarian 🥩": "The ultimate food explorer! No dish is too adventurous for your taste buds.",
     "Vegan 🌱": "Plant-based warrior! Saving the planet one tofu block at a time.",
     "Flexitarian 🥑": "Best of both worlds! You're like a dietary chameleon, adapting with style.",
-    
-    // Energy peaks
     "Morning Bird 🌄": "Early bird gets the worm... and probably all the hot coffee too!",
     "Afternoon Power ⭐️": "Lunch hour superhero! Your energy peaks when others are food-coma-ing.",
     "Night Spirit 🌌": "Moonlight's bestie! While others snooze, you're in your groove.",
     "Random Bursts ✨": "You're like a surprise party - nobody knows when you'll pop up with energy!",
-    
-    // Sleep patterns
     "Sleeping like a baby 👶": "Plot twist: Actually sleeping through the night, unlike real babies!",
     "Decent ZZZs 💤": "Not all heroes wear capes, some just have a consistent bedtime.",
     "Tossing & turning 🔄": "Your bed is basically a salad spinner - everything's mixed up!",
     "What is sleep? 🤔": "Coffee is your love language, and insomnia is your sidekick.",
   };
 
-  // Update the questions array with more comprehensive questions
   const questions = [
     {
       id: 1,
@@ -271,18 +481,6 @@ const MainContent = () => {
     }
   ];
 
-  // Check if the user has already completed the preferences
-  useEffect(() => {
-    const checkPreferences = async () => {
-      const hasCompleted = await AsyncStorage.getItem("hasCompletedPreferences");
-      if (!hasCompleted) {
-        setUserPreferencesModalVisible(true);
-      }
-    };
-    checkPreferences();
-  }, []);
-
-  // Handle user response with drawer animation
   const handleResponse = (response) => {
     if (isProcessing) return;
     
@@ -318,7 +516,6 @@ const MainContent = () => {
     });
   };
 
-  // Add this new function to reset preferences
   const resetPreferences = async () => {
     try {
       await AsyncStorage.removeItem("hasCompletedPreferences");
@@ -331,7 +528,6 @@ const MainContent = () => {
     }
   };
 
-  // Add this function to handle long press on the header title
   const handleLongPressHeader = () => {
     Alert.alert(
       "Reset Preferences",
@@ -350,7 +546,6 @@ const MainContent = () => {
     );
   };
 
-  // Render the user preferences modal
   const renderUserPreferencesModal = () => (
     <Modal
       transparent
@@ -453,10 +648,9 @@ const MainContent = () => {
   );
   
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Header Section */}
-        <View style={styles.header}>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerContainer}>
           <TouchableOpacity 
             onLongPress={handleLongPressHeader}
             delayLongPress={1000}
@@ -469,7 +663,6 @@ const MainContent = () => {
           </TouchableOpacity>
         </View>
         
-        {/* Search Bar - Replacing with Sun Animation */}
         <View style={styles.sunAnimationContainer}>
           <LottieView
             source={sunAnimation}
@@ -479,150 +672,63 @@ const MainContent = () => {
           />
         </View>
 
-        {/* Activity Cards */}
-        <View style={styles.activitySection}>
-          <Text style={styles.sectionTitle}>Today's Activities</Text>
-          <View style={styles.activityGrid}>
-            <TouchableOpacity style={[styles.activityCard, { backgroundColor: COLORS.coral }]}>
-              <MaterialCommunityIcons name="meditation" size={32} color={COLORS.white} />
-              <Text style={styles.activityTitle}>Meditation</Text>
-              <Text style={styles.activityDuration}>10 min</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.activityCard, { backgroundColor: COLORS.teal }]}>
-              <MaterialCommunityIcons name="yoga" size={32} color={COLORS.white} />
-              <Text style={styles.activityTitle}>Yoga</Text>
-              <Text style={styles.activityDuration}>20 min</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Progress Section */}
-        <View style={styles.progressSection}>
-          <Text style={styles.sectionTitle}>Your Progress</Text>
-          <View style={styles.progressCard}>
-            <View style={styles.progressHeader}>
-              <MaterialIcons name="trending-up" size={24} color={COLORS.primary} />
-              <Text style={styles.progressTitle}>Weekly Streak</Text>
-            </View>
-            <Text style={styles.progressValue}>5 Days</Text>
-            <View style={styles.progressBar}>
-              <View style={[styles.progressFill, { width: "71%" }]} />
-            </View>
-          </View>
-        </View>
-
-        {/* Daily Inspiration */}
-        <View style={styles.inspirationSection}>
-          <Text style={styles.sectionTitle}>Daily Inspiration</Text>
-          <View style={styles.inspirationCard}>
-            <MaterialCommunityIcons name="lightbulb-outline" size={24} color={COLORS.primary} />
-            <Text style={styles.inspirationText}>
-              "Tranquility begins with a calm mind and peaceful thoughts."
+        <View style={styles.personalizedSectionContainer}>
+          <View style={styles.personalizedHeader}>
+            <Text style={styles.personalizedTitle}>Personalized for You</Text>
+            <Text style={styles.personalizedSubtitle}>
+              Based on your current symptoms, cycle phase, and mood
             </Text>
+            <View style={styles.personalizedTags}>
+              <View style={styles.personalizedTag}>
+                <Text style={styles.personalizedTagText}>{userData.cyclePhase}</Text>
           </View>
+              <View style={styles.personalizedTag}>
+                <Text style={styles.personalizedTagText}>{userData.mood}</Text>
         </View>
-
-        {/* Quick Content Cards */}
-        <View style={styles.quickContentSection}>
-          <Text style={styles.sectionTitle}>Continue your journey</Text>
-          <View style={styles.quickContentContainer}>
-            {quickContentData.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.quickCard, { backgroundColor: item.backgroundColor }]}
-              >
-                <Image 
-                  source={{ uri: item.image }}
-                  style={styles.quickCardBackground}
-                  blurRadius={1.5}
-                />
-                <View style={styles.quickCardOverlay} />
-                <View style={styles.quickCardContent}>
-                  <Text style={styles.quickCardTitle}>{item.title}</Text>
-                  <Text style={styles.quickCardDuration}>{item.duration}</Text>
+              {userData.symptoms.map((symptom, index) => (
+                <View key={index} style={styles.personalizedTag}>
+                  <Text style={styles.personalizedTagText}>{symptom}</Text>
                 </View>
-                <MaterialIcons
-                  name={item.icon}
-                  size={32}
-                  color={COLORS.white}
-                  style={styles.playIcon}
-                />
-              </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Stats Overview */}
-        <View style={styles.statsSection}>
-          <Text style={styles.sectionTitle}>Your wellness stats</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: COLORS.accent }]}>
-                <MaterialCommunityIcons name="meditation" size={20} color={COLORS.white} />
+          <View style={styles.sectionContainer}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Personalised Meditation and Yoga</Text>
               </View>
-              <View style={styles.statContent}>
-                <Text style={styles.statValue}>28 min</Text>
-                <Text style={styles.statLabel}>Mindfulness</Text>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: COLORS.primary }]}>
-                <MaterialCommunityIcons name="sleep" size={20} color={COLORS.white} />
-              </View>
-              <View style={styles.statContent}>
-                <Text style={styles.statValue}>7.2 hrs</Text>
-                <Text style={styles.statLabel}>Avg. Sleep</Text>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View style={[styles.statIcon, { backgroundColor: COLORS.green }]}>
-                <MaterialIcons name="loop" size={20} color={COLORS.white} />
-              </View>
-              <View style={styles.statContent}>
-                <Text style={styles.statValue}>5 days</Text>
-                <Text style={styles.statLabel}>Streak</Text>
-              </View>
-            </View>
-          </View>
-        </View>
-        
-        {/* Mind Challenges */}
-        <View style={styles.challengesSection}>
-          <Text style={styles.sectionTitle}>Mind Challenges</Text>
-          <View style={styles.challengesGrid}>
-            {mindQuizData.map((item) => (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.challengeCard, { backgroundColor: getRandomColor() }]}
-              >
-                <View style={styles.challengeIconContainer}>
-                  <MaterialCommunityIcons name={item.icon} size={24} color={COLORS.white} />
-                </View>
-                <Text style={styles.challengeTitle}>{item.title}</Text>
-                <Text style={styles.challengeDescription}>{item.description}</Text>
-                <View style={styles.startButton}>
-                  <Text style={styles.startButtonText}>Start</Text>
-                  <MaterialIcons name="arrow-forward" size={16} color={COLORS.text} />
-                </View>
-              </TouchableOpacity>
-            ))}
+            <Animated.ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.meditationsContainer}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: false }
+              )}
+              scrollEventThrottle={16}
+            >
+              {getPersonalizedMeditations().length > 0 ? (
+                getPersonalizedMeditations().map((meditation, index) =>
+                  renderMeditationCard(meditation, index)
+                )
+              ) : (
+                <Text style={styles.noRecommendationsText}>No specific recommendations right now. Explore general meditations!</Text>
+              )}
+            </Animated.ScrollView>
           </View>
         </View>
 
-        {/* Recommended Articles */}
         <View style={styles.recommendedSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recommended Articles</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeAllText}>See all</Text>
+            {filteredArticles.length > 4 && !showAllArticles && (
+              <TouchableOpacity onPress={() => setShowAllArticles(true)}>
+                <Text style={styles.viewAllText}>See all ({filteredArticles.length})</Text>
             </TouchableOpacity>
+            )}
           </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.recommendedScrollView}
-          >
-            {recommendedArticles.map((article) => (
+          <View style={styles.articlesContainer}>
+            {(showAllArticles ? filteredArticles : filteredArticles.slice(0, 4)).map((article) => (
               <TouchableOpacity
                 key={article.id}
                 style={styles.articleCard}
@@ -639,11 +745,12 @@ const MainContent = () => {
                 </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+            {filteredArticles.length === 0 && (
+              <Text style={styles.noRecommendationsText}>No specific articles match your current profile. Explore all content!</Text>
+            )}
         </View>
-      </ScrollView>
+        </View>
 
-      {/* Article Modal */}
       <Modal
         transparent
         visible={modalVisible}
@@ -658,42 +765,21 @@ const MainContent = () => {
         />
       </Modal>
 
-      {/* User Preferences Modal */}
       {renderUserPreferencesModal()}
-      
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="home" size={24} color={COLORS.primary} />
-          <Text style={[styles.navText, styles.activeNavText]}>Home</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="grid-view" size={24} color={COLORS.lightText} />
-          <Text style={styles.navText}>Quizzes</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="people" size={24} color={COLORS.lightText} />
-          <Text style={styles.navText}>Friends</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.navItem}>
-          <MaterialIcons name="person" size={24} color={COLORS.lightText} />
-          <Text style={styles.navText}>Profile</Text>
-        </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  scrollContainer: {
-    padding: 16,
-    paddingBottom: 80,
+  container: {
+    flex: 1,
   },
-  header: {
+  headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -729,301 +815,202 @@ const styles = StyleSheet.create({
     width: 400,
     height: 400,
   },
-  activitySection: {
-    marginBottom: 24,
+  personalizedSectionContainer: {
+    marginBottom: 10,
   },
-  sectionTitle: {
-    fontSize: 18,
+  personalizedHeader: {
+    backgroundColor: COLORS.personalizedHeaderBg,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 16,
+    padding: 16,
+  },
+  personalizedTitle: {
+    fontSize: 20,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 16,
-    fontFamily: 'Montserrat Alternates Regular',
-  },
-  activityGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  activityCard: {
-    width: '48%',
-    padding: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
+    fontFamily: 'PlayfairDisplay-SemiBold',
     marginBottom: 8,
   },
-  activityTitle: {
-    color: COLORS.white,
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 12,
-  },
-  activityDuration: {
-    color: COLORS.white,
+  personalizedSubtitle: {
     fontSize: 14,
-    opacity: 0.8,
-    marginTop: 4,
-  },
-  progressSection: {
-    marginBottom: 24,
-  },
-  progressCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  inspirationSection: {
-    marginBottom: 24,
-  },
-  inspirationCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  inspirationText: {
-    fontSize: 16,
-    color: COLORS.text,
-    textAlign: 'center',
-    marginTop: 12,
-    fontStyle: 'italic',
-  },
-  quickContentSection: {
-    marginBottom: 24,
-  },
-  quickContentContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  quickCard: {
-    width: '48%',
-    height: 120,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  quickCardBackground: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-  },
-  quickCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-  },
-  quickCardContent: {
-    position: 'absolute',
-    bottom: 12,
-    left: 12,
-    right: 12,
-  },
-  quickCardTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginBottom: 4,
-  },
-  quickCardDuration: {
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.9,
-  },
-  playIcon: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 16,
-    padding: 4,
-  },
-  statsSection: {
-    marginBottom: 24,
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  statCard: {
-    width: '30%',
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    backgroundColor: COLORS.pink,
-  },
-  statContent: {
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
     color: COLORS.lightText,
-  },
-  challengesSection: {
-    marginBottom: 24,
-  },
-  challengesGrid: {
-    flexDirection: 'column',
-    gap: 16,
-  },
-  challengeCard: {
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  challengeIconContainer: {
-    marginBottom: 12,
-  },
-  challengeTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.white,
-    marginBottom: 8,
-  },
-  challengeDescription: {
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.9,
+    fontFamily: 'Poppins-Regular',
     marginBottom: 16,
   },
-  startButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
+  personalizedTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  personalizedTag: {
+    backgroundColor: COLORS.personalizedTagBg,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    borderRadius: 20,
   },
-  startButtonText: {
-    fontSize: 14,
-    color: COLORS.text,
-    marginRight: 4,
+  personalizedTagText: {
+    fontSize: 12,
+    color: COLORS.meditationTagText,
+    fontFamily: 'Poppins-Medium',
   },
-  recommendedSection: {
-    marginBottom: 24,
+  sectionContainer: {
+    marginBottom: 25,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 20,
+    paddingHorizontal: 16,
   },
-  seeAllText: {
-    fontSize: 14,
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: COLORS.text,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  viewAllText: {
+    fontSize: 16,
     color: COLORS.primary,
+    fontFamily: 'Poppins-SemiBold',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
-  recommendedScrollView: {
-    marginTop: 12,
+  meditationsContainer: {
+    paddingLeft: 16,
+    paddingRight: 16,
+    paddingBottom: 10,
   },
-  articleCard: {
-    width: 280,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    overflow: 'hidden',
+  meditationCard: {
+    width: width * 0.65,
     marginRight: 16,
-    shadowColor: "#000",
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    shadowColor: COLORS.secondary,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+    overflow: 'hidden',
   },
-  articleImage: {
+  meditationGradient: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  meditationImage: {
     width: '100%',
-    height: 160,
+    height: width * 0.4,
   },
-  articleContent: {
-    padding: 16,
+  meditationInfo: {
+    padding: 12,
   },
-  articleType: {
-    fontSize: 12,
-    color: COLORS.primary,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  articleTitle: {
+  meditationTitle: {
     fontSize: 16,
     fontWeight: '600',
     color: COLORS.text,
-    marginBottom: 12,
-    lineHeight: 22,
+    fontFamily: 'Poppins-SemiBold',
+    marginBottom: 4,
   },
-  articleFooter: {
+  meditationDescription: {
+    fontSize: 13,
+    color: COLORS.lightText,
+    fontFamily: 'Poppins-Regular',
+    marginBottom: 10,
+    lineHeight: 17,
+  },
+  meditationMeta: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: 10,
+  },
+  meditationDuration: {
+    fontSize: 11,
+    color: COLORS.lightText,
+    marginRight: 10,
+    fontFamily: 'Poppins-Regular',
+  },
+  meditationTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  tagText: {
+    fontSize: 11,
+    color: COLORS.meditationTagText,
+    fontFamily: 'Poppins-Medium',
+  },
+  noRecommendationsText: {
+    marginLeft: 16,
+    color: COLORS.lightText,
+    fontFamily: 'Poppins-Regular',
+    fontSize: 14,
+  },
+  recommendedSection: {
+    marginBottom: 80,
+  },
+  articlesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    gap: 16,
+  },
+  articleCard: {
+    width: (width - 48) / 2,
+    marginBottom: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    overflow: "hidden",
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  articleImage: {
+    width: "100%",
+    height: 130,
+    backgroundColor: COLORS.pink,
+  },
+  articleContent: {
+    padding: 12,
+  },
+  articleType: {
+    fontSize: 11,
+    fontFamily: 'Poppins-Medium',
+    color: COLORS.meditationTagText,
+    backgroundColor: COLORS.meditationTagBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+    overflow: "hidden",
+  },
+  articleTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.text,
+    marginBottom: 6,
+    lineHeight: 20,
+  },
+  articleFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
   },
   articleDuration: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.lightText,
     marginLeft: 4,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.pink,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  navItem: {
-    alignItems: 'center',
-  },
-  navText: {
-    fontSize: 12,
-    color: COLORS.lightText,
-    marginTop: 4,
-  },
-  activeNavText: {
-    color: COLORS.primary,
   },
   lottieContainer: {
     width: 200,
@@ -1179,6 +1166,109 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginRight: 8,
     fontFamily: 'Montserrat Alternates Regular',
+  },
+  progressTrack: {
+    height: 8,
+    backgroundColor: COLORS.pink,
+    borderRadius: 4,
+    marginTop: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: COLORS.primary,
+    borderRadius: 4,
+  },
+  progressBarContainer: {
+    width: "100%",
+    height: 10,
+    backgroundColor: COLORS.pink,
+    borderRadius: 5,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  questionText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: COLORS.text,
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: 'Poppins-Medium',
+  },
+  optionsContainer: {
+    width: "100%",
+    marginBottom: 20,
+  },
+  optionButton: {
+    backgroundColor: COLORS.pink,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginBottom: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  selectedOptionButton: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#FFF0F5',
+  },
+  optionText: {
+    fontSize: 16,
+    color: COLORS.text,
+    textAlign: "center",
+    fontFamily: 'Poppins-Regular',
+  },
+  optionDescription: {
+    fontSize: 13,
+    color: COLORS.lightText,
+    textAlign: "center",
+    marginTop: 10,
+    fontStyle: 'italic',
+    paddingHorizontal: 10,
+  },
+  modalNavContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 10,
+  },
+  processingButton: {
+    backgroundColor: COLORS.secondary,
+  },
+  processingContainer: {
+    alignItems: "center",
+    marginTop: 20,
+  },
+  processingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: COLORS.primary,
+  },
+  drawerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  drawerContent: {
+    // Styles for drawer content
+  },
+  drawerHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: COLORS.lightText,
+    alignSelf: 'center',
+    marginBottom: 10,
   },
 });
 
