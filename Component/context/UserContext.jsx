@@ -9,28 +9,29 @@ import { db } from '../../firebase.config'
 const UserContext = createContext()
 
 export const UserProvider = ({ children }) => {
-  const [userData, setUserData] = useState({
-    uid: null,
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    profileImage: null,
-    lastPeriodStart: null,
-    periodDays: null,
-    cycleDays: null,
-    isLoggedIn: false,
-    isDoctor: false,
-    needsOnboarding: true,
-    createdAt: null,
-    lastUpdated: null,
-    onboardingCompleted: false,
-    expectedPeriodDate: null,
-    periodGaps: [],
-    lastPeriodChecked: null,
-    isLatePeriod: false,
-    daysLate: 0
-  })
+  const userData = {
+  uid: "user_" + Math.random().toString(36).substr(2, 9),
+  name: "Riya Sharma",
+  email: "riya.sharma@example.com",
+  phone: "+91 9876543210",
+  address: "32-B, Green Park, New Delhi, India",
+  profileImage: "https://randomuser.me/api/portraits/women/21.jpg",
+  lastPeriodStart: new Date("2025-03-15"),
+  periodDays: 5,
+  cycleDays: 28,
+  isLoggedIn: true,
+  isDoctor: false,
+  needsOnboarding: false,
+  createdAt: new Date("2025-01-05T10:15:00Z"),
+  lastUpdated: new Date(),
+  onboardingCompleted: true,
+  expectedPeriodDate: new Date("2025-04-12"),  // Based on lastPeriodStart + cycleDays
+  periodGaps: [28, 27, 29, 28],
+  lastPeriodChecked: new Date("2025-04-14"),
+  isLatePeriod: true,
+  daysLate: 2
+};
+
 
   const checkDoctorStatus = useCallback(async (formattedPhone) => {
     const doctorsRef = collection(db, "doctors")
