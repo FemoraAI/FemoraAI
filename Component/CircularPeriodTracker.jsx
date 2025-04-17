@@ -103,12 +103,8 @@ const CircularPeriodTracker = ({
     if (userData.isLatePeriod) {
       return (
         <>
-          <MaterialIcons name="warning" size={24} color={COLORS.warning} style={styles.warningIcon} />
-          <Text style={[styles.centerTextNumber, { color: COLORS.warning }]}>
-            {userData.daysLate}
-          </Text>
-          <Text style={[styles.centerTextMessage, { color: COLORS.warning }]}>
-            {userData.daysLate === 1 ? 'day late' : 'days late'}
+          <Text style={styles.latePeriodText}>
+            Periods {userData.daysLate} {userData.daysLate === 1 ? 'day' : 'days'} late
           </Text>
         </>
       );
@@ -249,23 +245,31 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   centerTextNumber: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: COLORS.text,
   },
   centerTextMessage: {
     fontSize: 16,
-    color: COLORS.text,
-    textAlign: 'center',
+    color: COLORS.lightText,
     marginTop: 4,
+    textAlign: 'center',
+  },
+  latePeriodText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.warning,
+    textAlign: 'center',
+    fontFamily: 'Montserrat Alternates Regular',
+    lineHeight: 24,
   },
   phaseText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     marginTop: 8,
   },
   warningIcon: {
-    marginBottom: 8,
+    marginBottom: 5,
   },
 });
 

@@ -130,10 +130,10 @@ const mindQuizData = [
 const recommendedArticles = [
   {
     id: 1,
-    title: "Understanding Mental Wellness",
-    subtitle: "A Guide to Better Mental Health",
+    title: "Managing Anxiety During Your Day",
+    subtitle: "Calming Techniques for Anxious Moments",
     recommendedBy: "Dr. Sarah Wilson",
-    content: "Explore aspects of mental health and find practical tips for maintaining a healthy mind, especially when feeling anxious.",
+    content: "Feeling anxious? Explore practical tips and mindfulness techniques to find calm and manage anxiety symptoms effectively.",
     readTime: "5 min read",
     type: "Mental Health",
     image: "https://images.pexels.com/photos/3771836/pexels-photo-3771836.jpeg?auto=compress&cs=tinysrgb&w=600",
@@ -152,13 +152,13 @@ const recommendedArticles = [
   },
   {
     id: 3,
-    title: "Boosting Energy Naturally",
-    subtitle: "Combat Fatigue with Lifestyle Changes",
+    title: "Fighting Fatigue & Boosting Low Energy",
+    subtitle: "Lifestyle Strategies for Feeling More Vibrant",
     recommendedBy: "Dr. Emily Brooks",
-    content: "Discover simple yet effective ways to increase your energy levels and fight fatigue through diet, exercise, and sleep.",
+    content: "Struggling with fatigue and low energy? Discover simple diet, exercise, and sleep habits to naturally increase your vitality.",
     readTime: "6 min read",
     type: "Lifestyle",
-    image: "https://images.pexels.com/photos/416778/pexels-photo-416778.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://cdn.pixabay.com/photo/2022/11/08/09/31/background-7578102_1280.jpg",
     tags: ['fatigue', 'energyLevel', 'sleepQuality'],
   },
   {
@@ -169,7 +169,7 @@ const recommendedArticles = [
     content: "Find effective, natural ways to manage menstrual cramps and discomfort during your cycle.",
     readTime: "4 min read",
     type: "Women's Health",
-    image: "https://images.pexels.com/photos/7298436/pexels-photo-7298436.jpeg?auto=compress&cs=tinysrgb&w=600",
+    image: "https://media.istockphoto.com/id/961365406/photo/woman-with-hot-water-bottle-healing-stomach-pain.jpg?s=612x612&w=0&k=20&c=JMAIGd7A2bmPngrOopJgpwtsMeaJ7bdZQqkvUYbAxIM=",
     tags: ['cramps', 'cyclePhase', 'symptoms'],
   },
   {
@@ -237,9 +237,11 @@ const MainContent = () => {
   const [cardScale] = useState(new Animated.Value(1));
   const [cardOpacity] = useState(new Animated.Value(1));
   const [showAllArticles, setShowAllArticles] = useState(false);
+  const [filteredArticles, setFilteredArticles] = useState([]);
 
   const fetchUserData = async () => {
     setUserData(mockUserData);
+    checkPreferences();
   };
 
   useEffect(() => {
@@ -252,6 +254,28 @@ const MainContent = () => {
     };
     checkPreferences();
   }, []);
+
+  useEffect(() => {
+    if (userData) {
+      const userTags = [
+        userData.cyclePhase,
+        userData.mood,
+        ...(userData.symptoms || []),
+        ...(userData.healthConditions || []),
+        userData.stressLevel > 6 ? 'stress' : null,
+        userData.sleepQuality < 7 ? 'sleepQuality' : null,
+        userData.energyLevel < 6 ? 'energyLevel' : null,
+      ].filter(tag => tag !== null).map(tag => String(tag).toLowerCase());
+
+      const relevantArticles = recommendedArticles.filter(article => {
+        const articleTagsLower = article.tags.map(tag => String(tag).toLowerCase());
+        return articleTagsLower.some(articleTag => userTags.includes(articleTag));
+      });
+      setFilteredArticles(relevantArticles);
+    } else {
+      setFilteredArticles(recommendedArticles);
+    }
+  }, [userData]);
 
   const getPersonalizedMeditations = () => {
     const { cyclePhase, symptoms, mood, stressLevel, healthConditions } = userData;
@@ -459,7 +483,7 @@ const MainContent = () => {
 
   const handleResponse = (response) => {
     if (isProcessing) return;
-
+    
     setSelectedOption(response);
     setUserResponses((prev) => ({
       ...prev,
@@ -622,12 +646,12 @@ const MainContent = () => {
       </View>
     </Modal>
   );
-
+  
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <TouchableOpacity
+          <TouchableOpacity 
             onLongPress={handleLongPressHeader}
             delayLongPress={1000}
           >
@@ -638,7 +662,7 @@ const MainContent = () => {
             <View style={styles.notificationBadge} />
           </TouchableOpacity>
         </View>
-
+        
         <View style={styles.sunAnimationContainer}>
           <LottieView
             source={sunAnimation}
@@ -657,22 +681,22 @@ const MainContent = () => {
             <View style={styles.personalizedTags}>
               <View style={styles.personalizedTag}>
                 <Text style={styles.personalizedTagText}>{userData.cyclePhase}</Text>
-              </View>
+          </View>
               <View style={styles.personalizedTag}>
                 <Text style={styles.personalizedTagText}>{userData.mood}</Text>
-              </View>
+        </View>
               {userData.symptoms.map((symptom, index) => (
                 <View key={index} style={styles.personalizedTag}>
                   <Text style={styles.personalizedTagText}>{symptom}</Text>
                 </View>
-              ))}
-            </View>
+            ))}
           </View>
+        </View>
 
           <View style={styles.sectionContainer}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Personalised Meditation and Yoga</Text>
-            </View>
+              </View>
             <Animated.ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -697,14 +721,14 @@ const MainContent = () => {
         <View style={styles.recommendedSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Recommended Articles</Text>
-            {recommendedArticles.length > 4 && !showAllArticles && (
+            {filteredArticles.length > 4 && !showAllArticles && (
               <TouchableOpacity onPress={() => setShowAllArticles(true)}>
-                <Text style={styles.viewAllText}>See all</Text>
-              </TouchableOpacity>
+                <Text style={styles.viewAllText}>See all ({filteredArticles.length})</Text>
+            </TouchableOpacity>
             )}
           </View>
           <View style={styles.articlesContainer}>
-            {(showAllArticles ? recommendedArticles : recommendedArticles.slice(0, 4)).map((article) => (
+            {(showAllArticles ? filteredArticles : filteredArticles.slice(0, 4)).map((article) => (
               <TouchableOpacity
                 key={article.id}
                 style={styles.articleCard}
@@ -721,43 +745,27 @@ const MainContent = () => {
                 </View>
               </TouchableOpacity>
             ))}
-          </View>
+            {filteredArticles.length === 0 && (
+              <Text style={styles.noRecommendationsText}>No specific articles match your current profile. Explore all content!</Text>
+            )}
+        </View>
         </View>
 
-        <Modal
-          transparent
-          visible={modalVisible}
-          onRequestClose={closeModal}
-          animationType="fade"
-        >
-          <ArticleModal
-            article={selectedArticle}
-            isVisible={modalVisible}
-            onClose={closeModal}
-            animationValue={modalAnimation}
-          />
-        </Modal>
+      <Modal
+        transparent
+        visible={modalVisible}
+        onRequestClose={closeModal}
+        animationType="fade"
+      >
+        <ArticleModal
+          article={selectedArticle}
+          isVisible={modalVisible}
+          onClose={closeModal}
+          animationValue={modalAnimation}
+        />
+      </Modal>
 
-        {renderUserPreferencesModal()}
-
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIcons name="home" size={24} color={COLORS.primary} />
-            <Text style={[styles.navText, styles.activeNavText]}>Home</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIcons name="grid-view" size={24} color={COLORS.lightText} />
-            <Text style={styles.navText}>Quizzes</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIcons name="people" size={24} color={COLORS.lightText} />
-            <Text style={styles.navText}>Friends</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIcons name="person" size={24} color={COLORS.lightText} />
-            <Text style={styles.navText}>Profile</Text>
-          </TouchableOpacity>
-        </View>
+      {renderUserPreferencesModal()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -1003,31 +1011,6 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins-Regular',
     color: COLORS.lightText,
     marginLeft: 4,
-  },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    height: 65,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.pink,
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    paddingBottom: 5,
-  },
-  navItem: {
-    alignItems: "center",
-  },
-  navText: {
-    fontSize: 10,
-    color: COLORS.lightText,
-    marginTop: 2,
-  },
-  activeNavText: {
-    color: COLORS.primary,
   },
   lottieContainer: {
     width: 200,
