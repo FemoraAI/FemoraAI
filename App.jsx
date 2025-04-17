@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import {TouchableOpacity, Platform} from 'react-native'
-import { NavigationContainer,useNavigation } from '@react-navigation/native';
+import { TouchableOpacity, Platform } from 'react-native'
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, View, ActivityIndicator } from 'react-native';
@@ -14,7 +14,7 @@ import HeaderScreen from './Component/HomeScreen';
 
 import LoginScreen from './Component/LoginScreen';
 import DoctorsScreen from './Component/DoctorsScreen';
-import CycleInsights from  './Component/CycleInsights';
+import CycleInsights from './Component/CycleInsights';
 import CartScreen from './Component/CartScreen';
 import ProfileManagementScreen from './Component/ProfileManagementScreen';
 import AppointmentSchedulePage from './Component/AppointmentSchedulePage';
@@ -26,6 +26,7 @@ import DoctorHomeScreen from './Component/DoctorHomepage';
 import AddPrescriptionPage from './Component/AddPrescriptionPage';
 import EducationalContent from './Component/EducationalContent';
 import Community from './Component/community';
+// import MeditationPage from './Component/MeditationPage'; // REMOVED import
 // Context Providers
 import { UserProvider, useUser } from './Component/context/UserContext';
 import { CartProvider } from './Component/context/CartContext';
@@ -95,17 +96,25 @@ const LoadingScreen = () => (
 // Home Stack Navigator
 const HomeStack = () => {
   const { userData } = useUser();
-  
+
   return (
-    <Stack.Navigator 
-      initialRouteName="HomeScreen"
-      screenOptions={{ headerShown: false }}
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
     >
       <Stack.Screen name="HomeScreen" component={HeaderScreen} />
-      {!userData.isDoctor && (
-        <Stack.Screen name="PeriodTracker" component={PeriodTrackerPage} />
-      )}
-      <Stack.Screen name="ProfileManagement" component={ProfileManagementScreen} />
+      <Stack.Screen name="Doctors" component={DoctorsScreen} />
+      <Stack.Screen name="CycleInsights" component={CycleInsights} />
+      <Stack.Screen name="Cart" component={CartScreen} />
+      <Stack.Screen name="Profile" component={ProfileManagementScreen} />
+      <Stack.Screen name="AppointmentSchedule" component={AppointmentSchedulePage} />
+      <Stack.Screen name="Prescription" component={PrescriptionPage} />
+      <Stack.Screen name="DoctorPage" component={DoctorPage} />
+      <Stack.Screen name="PeriodTracker" component={PeriodTrackerPage} />
+      <Stack.Screen name="EducationalContent" component={EducationalContent} />
+      <Stack.Screen name="Community" component={Community} />
+      {/* <Stack.Screen name="Meditation" component={MeditationPage} /> // REMOVED Stack Screen */}
     </Stack.Navigator>
   );
 };
@@ -148,14 +157,14 @@ const CommunityStack = () => {
 // Tab Navigator
 const TabNavigator = () => {
   const { userData } = useUser();
-  
+
   return (
     <Tab.Navigator
-    initialRouteName="Home"
-    screenOptions={{ headerShown: false }}
-    tabBar={(props) => <CustomTabBar {...props} />} // Pass all props
-  >
-        {!userData.isDoctor && (
+      initialRouteName="Home"
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <CustomTabBar {...props} />} // Pass all props
+    >
+      {!userData.isDoctor && (
         <Tab.Screen
           name="Cart"
           component={CycleInsights}
@@ -177,7 +186,7 @@ const TabNavigator = () => {
           }}
         />
       )}
-       <Tab.Screen
+      <Tab.Screen
         name="Home"
         component={HomeStack}
         options={{
@@ -192,7 +201,7 @@ const TabNavigator = () => {
           component={Edu}
           options={{
             tabBarIcon: ({ color, size }) => (
-              <MaterialCommunityIcons name="meditation" size={size+5} color={color} />
+              <MaterialCommunityIcons name="meditation" size={size + 5} color={color} />
             ),
           }}
         />
@@ -208,8 +217,8 @@ const TabNavigator = () => {
           }}
         />
       )}
-      
-   
+
+
     </Tab.Navigator>
   );
 };
@@ -222,7 +231,7 @@ const AuthNavigator = () => {
 
   useEffect(() => {
     const auth = getAuth();
-    
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
         setIsLoading(false);
