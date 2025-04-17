@@ -4,6 +4,7 @@ import LottieView from 'lottie-react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useUser } from './context/UserContext';
 
 const { width } = Dimensions.get('window');
 const CONTAINER_PADDING = 16;
@@ -11,7 +12,8 @@ const CARD_GAP = 16;
 const CARD_WIDTH = Math.min((width - (2 * CONTAINER_PADDING) - (2 * CARD_GAP)) / 3.2, 100);
 const CARD_HEIGHT = CARD_WIDTH * (3.5/2.5);
 
-const AIInsightsContainer = ({ insights = [], phase }) => {
+const AIInsightsContainer = ({ insights = [] }) => {
+  const { userData, getCurrentPhase, updatePhaseAndInsights } = useUser();
   const [showCards, setShowCards] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const [flippedCards, setFlippedCards] = useState([false, false, false]);
@@ -27,13 +29,18 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
     new Animated.Value(0)
   ]).current;
   const lottieRef = useRef(null);
-  const previousPhase = useRef(phase);
+  const currentPhase = getCurrentPhase();
+  const phaseKey = currentPhase.name.toLowerCase().replace(" phase", "");
+  const previousPhase = useRef(phaseKey);
+
+  // Check if gift box should be shown based on phase change
+  const shouldShowGiftBox = phaseKey !== previousPhase.current;
 
   // Load persisted state when component mounts
   useEffect(() => {
     const loadPersistedState = async () => {
       try {
-        const persistedState = await AsyncStorage.getItem(`insights_state_${phase}`);
+        const persistedState = await AsyncStorage.getItem(`insights_state_${phaseKey}`);
         if (persistedState) {
           const { showCards: persistedShowCards, flippedCards: persistedFlippedCards, hasRevealedCards: persistedHasRevealedCards } = JSON.parse(persistedState);
           setShowCards(persistedShowCards);
@@ -56,7 +63,7 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
     };
 
     loadPersistedState();
-  }, [phase]);
+  }, [phaseKey]);
 
   useEffect(() => {
     // Reset animation to first frame when component mounts
@@ -71,20 +78,20 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
 
   useEffect(() => {
     // Reset state when phase changes
-    if (phase !== previousPhase.current) {
+    if (phaseKey !== previousPhase.current) {
       setShowCards(false);
       setFlippedCards([false, false, false]);
       setHasRevealedCards(false);
-      previousPhase.current = phase;
+      previousPhase.current = phaseKey;
     }
-  }, [phase]);
+  }, [phaseKey]);
 
   // Save state whenever it changes
   useEffect(() => {
     const saveState = async () => {
       try {
         await AsyncStorage.setItem(
-          `insights_state_${phase}`,
+          `insights_state_${phaseKey}`,
           JSON.stringify({
             showCards,
             flippedCards,
@@ -97,7 +104,7 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
     };
 
     saveState();
-  }, [showCards, flippedCards, hasRevealedCards, phase]);
+  }, [showCards, flippedCards, hasRevealedCards, phaseKey]);
 
   const startJiggleAnimations = () => {
     // Create jiggle animations for each card
@@ -131,13 +138,15 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
     }
   };
 
-  const onGiftAnimationFinish = () => {
+  const onGiftAnimationFinish = async () => {
     setShowCards(true);
+    // Update the phase insights in Firebase with the current timestamp
+    await updatePhaseAndInsights(phaseKey, true);
   };
 
   const flipCard = (index) => {
     // Prevent flipping if card is already flipped or if we're not in the current phase
-    if (flippedCards[index] || phase !== previousPhase.current) return;
+    if (flippedCards[index] || phaseKey !== previousPhase.current) return;
     
     Animated.spring(flipAnimations[index], {
       toValue: 1,
@@ -233,7 +242,7 @@ const AIInsightsContainer = ({ insights = [], phase }) => {
         style={styles.gradientContainer}
       >
         <Text style={styles.mainTitle}>Personalised Insights</Text>
-        {!showCards ? (
+        {!showCards && shouldShowGiftBox ? (
           <View style={styles.giftWrapper}>
             <TouchableOpacity 
               style={styles.giftContainer}
